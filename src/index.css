@@ -47,6 +47,10 @@
     --chart-2: 24 80% 55%;
     --chart-3: 200 60% 50%;
     --chart-4: 340 65% 55%;
+
+    --brand-blue: 210 80% 55%;
+    --brand-light-blue: 200 90% 92%;
+    --brand-dark-blue: 210 70% 30%;
   }
 
   .dark {
@@ -91,6 +95,10 @@
     --chart-2: 24 80% 55%;
     --chart-3: 200 60% 55%;
     --chart-4: 340 65% 60%;
+
+    --brand-blue: 210 80% 60%;
+    --brand-light-blue: 210 50% 20%;
+    --brand-dark-blue: 210 70% 45%;
   }
 }
 
