@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Search, Package } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Search,
+  Package,
+  ChefHat,
+  Wine,
+  ArrowLeft,
+  MessageCircle,
+} from "lucide-react";
 
 type UserProduct = {
   id: string;
@@ -49,26 +60,28 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
+type View = "hub" | "recipes" | "products";
+
 const MyProducts = () => {
   const { user } = useAuth();
+  const [view, setView] = useState<View>("hub");
   const [products, setProducts] = useState<UserProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Form state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("user_products")
-      .select("id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, salt_per_100g")
+      .select(
+        "id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, salt_per_100g"
+      )
       .eq("user_id", user.id)
       .order("name");
     setProducts(
@@ -118,7 +131,6 @@ const MyProducts = () => {
       return;
     }
     setSaving(true);
-
     const payload = {
       user_id: user.id,
       name: form.name.trim(),
@@ -131,7 +143,6 @@ const MyProducts = () => {
       fiber_per_100g: parseFloat(form.fiber_per_100g) || 0,
       salt_per_100g: parseFloat(form.salt_per_100g) || 0,
     };
-
     let error;
     if (editingId) {
       ({ error } = await supabase
@@ -142,7 +153,6 @@ const MyProducts = () => {
     } else {
       ({ error } = await supabase.from("user_products").insert(payload));
     }
-
     if (error) {
       toast.error("Errore: " + error.message);
     } else {
@@ -160,7 +170,6 @@ const MyProducts = () => {
       .delete()
       .eq("id", deleteId)
       .eq("user_id", user.id);
-
     if (error) {
       toast.error("Errore: " + error.message);
     } else {
@@ -179,213 +188,321 @@ const MyProducts = () => {
       )
     : products;
 
-  return (
-    <>
-      <PageHeader title="I Miei Prodotti" showBack />
-      <div className="mx-auto max-w-sm space-y-3 px-4 pb-6 pt-2">
-        {/* Search + Add */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Cerca…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+  if (view !== "hub") {
+    return (
+      <>
+        <div className="mx-auto max-w-lg">
+          {/* Sub-page header */}
+          <div
+            className="flex items-center gap-3 px-4 pb-4 pt-10"
+            style={{
+              background:
+                "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(var(--background)) 100%)",
+            }}
+          >
+            <button
+              onClick={() => setView("hub")}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 shadow-sm"
+            >
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <h1 className="text-lg font-bold text-foreground">
+              {view === "recipes" ? "Il mio ricettario" : "I miei prodotti"}
+            </h1>
           </div>
-          <Button size="icon" onClick={openNew}>
-            <Plus className="h-4 w-4" />
-          </Button>
+
+          {view === "recipes" ? (
+            <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+              <ChefHat className="h-12 w-12 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                Le ricette saranno disponibili a breve!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 px-4 pb-6 pt-2">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Cerca…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button size="icon" onClick={openNew}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {loading && (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+
+              {!loading && products.length === 0 && (
+                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                  <Package className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">
+                    Nessun prodotto personale ancora.
+                  </p>
+                  <Button size="sm" onClick={openNew}>
+                    <Plus className="mr-1 h-4 w-4" /> Aggiungi il primo
+                  </Button>
+                </div>
+              )}
+
+              {filtered.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-xl border bg-card p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-foreground">
+                      {p.name}
+                    </div>
+                    {p.brand && (
+                      <div className="text-xs text-muted-foreground">
+                        {p.brand}
+                      </div>
+                    )}
+                    <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
+                      <span>{p.kcal_per_100g} kcal</span>
+                      <span>P {p.protein_per_100g}g</span>
+                      <span>C {p.carbs_per_100g}g</span>
+                      <span>G {p.fat_per_100g}g</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => openEdit(p)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteId(p.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        )}
-
-        {/* Empty */}
-        {!loading && products.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <Package className="h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Nessun prodotto personale ancora.
-            </p>
-            <Button size="sm" onClick={openNew}>
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi il primo
-            </Button>
-          </div>
-        )}
-
-        {/* Product list */}
-        {filtered.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center gap-3 rounded-xl border bg-card p-3"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">
-                {p.name}
+        {/* Dialogs */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? "✏️ Modifica Prodotto" : "➕ Nuovo Prodotto"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setField("name", e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                />
               </div>
-              {p.brand && (
-                <div className="text-xs text-muted-foreground">{p.brand}</div>
-              )}
-              <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
-                <span>{p.kcal_per_100g} kcal</span>
-                <span>P {p.protein_per_100g}g</span>
-                <span>C {p.carbs_per_100g}g</span>
-                <span>G {p.fat_per_100g}g</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Brand</Label>
+                  <Input
+                    value={form.brand}
+                    onChange={(e) => setField("brand", e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Barcode</Label>
+                  <Input
+                    value={form.barcode}
+                    onChange={(e) => setField("barcode", e.target.value)}
+                    maxLength={50}
+                  />
+                </div>
               </div>
+              <p className="pt-1 text-xs font-medium text-muted-foreground">
+                Valori per 100g
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["kcal_per_100g", "Kcal", "0.1"],
+                  ["protein_per_100g", "Proteine (g)", "0.1"],
+                  ["carbs_per_100g", "Carboidrati (g)", "0.1"],
+                  ["fat_per_100g", "Grassi (g)", "0.1"],
+                  ["fiber_per_100g", "Fibre (g)", "0.1"],
+                  ["salt_per_100g", "Sale (g)", "0.01"],
+                ].map(([key, label, step]) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-xs">{label}</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step={step}
+                      value={form[key as keyof typeof form]}
+                      onChange={(e) => setField(key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button className="w-full" onClick={handleSave} disabled={saving}>
+                {saving
+                  ? "Salvataggio…"
+                  : editingId
+                  ? "Aggiorna"
+                  : "Crea Prodotto"}
+              </Button>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 shrink-0"
-              onClick={() => openEdit(p)}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-              onClick={() => setDeleteId(p.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog
+          open={!!deleteId}
+          onOpenChange={(v) => !v && setDeleteId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminare questo prodotto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Questa azione non può essere annullata.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>
+                Elimina
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
+  // ── Hub view (matches mockup) ──
+  return (
+    <div className="mx-auto max-w-lg">
+      {/* Header with gradient */}
+      <div
+        className="relative overflow-hidden pb-6"
+        style={{
+          background:
+            "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
+          borderRadius: "0 0 2rem 2rem",
+        }}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 pt-10 pb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+            <span className="text-base">🍽️</span>
           </div>
-        ))}
+          <span
+            className="text-xl font-bold tracking-wide"
+            style={{ color: "hsl(var(--brand-dark-blue))" }}
+          >
+            ITAL LEA
+          </span>
+        </div>
+
+        {/* Title row */}
+        <div className="flex items-center justify-between px-5">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              style={{ background: "hsl(200, 90%, 95%)" }}
+            >
+              <Package className="h-6 w-6" style={{ color: "hsl(var(--brand-blue))" }} />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">Il mio database</h1>
+          </div>
+          <button
+            className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
+            style={{ background: "hsl(var(--brand-blue))" }}
+            aria-label="Assistente"
+          >
+            <MessageCircle className="h-5 w-5 text-white" />
+          </button>
+        </div>
       </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {editingId ? "✏️ Modifica Prodotto" : "➕ Nuovo Prodotto"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome *</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setField("name", e.target.value)}
-                maxLength={100}
-                autoFocus
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Brand</Label>
-                <Input
-                  value={form.brand}
-                  onChange={(e) => setField("brand", e.target.value)}
-                  maxLength={100}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Barcode</Label>
-                <Input
-                  value={form.barcode}
-                  onChange={(e) => setField("barcode", e.target.value)}
-                  maxLength={50}
-                />
-              </div>
-            </div>
-
-            <p className="text-xs font-medium text-muted-foreground pt-1">
-              Valori per 100g
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Kcal</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.kcal_per_100g}
-                  onChange={(e) => setField("kcal_per_100g", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Proteine (g)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.protein_per_100g}
-                  onChange={(e) => setField("protein_per_100g", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Carboidrati (g)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.carbs_per_100g}
-                  onChange={(e) => setField("carbs_per_100g", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Grassi (g)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.fat_per_100g}
-                  onChange={(e) => setField("fat_per_100g", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Fibre (g)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.fiber_per_100g}
-                  onChange={(e) => setField("fiber_per_100g", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Sale (g)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.salt_per_100g}
-                  onChange={(e) => setField("salt_per_100g", e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Button className="w-full" onClick={handleSave} disabled={saving}>
-              {saving ? "Salvataggio…" : editingId ? "Aggiorna" : "Crea Prodotto"}
-            </Button>
+      {/* Sections */}
+      <div className="space-y-4 px-4 py-5">
+        {/* Ricettario */}
+        <Card
+          className="cursor-pointer overflow-hidden border-0 shadow-md transition-transform active:scale-[0.98]"
+          onClick={() => setView("recipes")}
+        >
+          <div className="px-4 pt-4">
+            <span
+              className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+              style={{ background: "hsl(var(--brand-blue))" }}
+            >
+              Il mio ricettario
+            </span>
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="flex items-center justify-between px-4 pb-4 pt-3">
+            <div>
+              <p className="text-base font-semibold text-foreground">
+                Visualizza le tue ricette
+              </p>
+              <p className="text-sm text-muted-foreground">
+                e aggiungi nuove ricette
+                <br />
+                con facilità
+              </p>
+            </div>
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ background: "hsl(200, 90%, 95%)" }}
+            >
+              <ChefHat className="h-9 w-9" style={{ color: "hsl(var(--brand-blue))" }} />
+            </div>
+          </div>
+        </Card>
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminare questo prodotto?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Questa azione non può essere annullata.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annulla</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Elimina</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        {/* Prodotti */}
+        <Card
+          className="cursor-pointer overflow-hidden border-0 shadow-md transition-transform active:scale-[0.98]"
+          onClick={() => setView("products")}
+        >
+          <div className="px-4 pt-4">
+            <span
+              className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+              style={{ background: "hsl(var(--brand-blue))" }}
+            >
+              I miei prodotti
+            </span>
+          </div>
+          <div className="flex items-center justify-between px-4 pb-4 pt-3">
+            <div>
+              <p className="text-base font-semibold text-foreground">
+                Visualizza i tuoi alimenti
+              </p>
+              <p className="text-sm text-muted-foreground">
+                e aggiungi nuovi alimenti
+              </p>
+            </div>
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ background: "hsl(24, 80%, 95%)" }}
+            >
+              <Wine className="h-9 w-9 text-accent" />
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 };
 
