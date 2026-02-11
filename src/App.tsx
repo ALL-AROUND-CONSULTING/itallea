@@ -14,6 +14,7 @@ import Charts from "./pages/Charts";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,8 +31,11 @@ const App = () => (
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Onboarding (auth required, no layout) */}
+              <Route path="/onboarding" element={<Onboarding />} />
 
-              {/* Protected routes */}
+              {/* Protected routes with layout */}
               <Route
                 element={
                   <ProtectedRoute>
