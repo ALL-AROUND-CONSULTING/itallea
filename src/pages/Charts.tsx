@@ -1,17 +1,21 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWeightLog } from "@/hooks/useWeightLog";
+import { useWeeklyCalories } from "@/hooks/useWeeklyCalories";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Cell,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
@@ -19,6 +23,11 @@ import { it } from "date-fns/locale";
 const Charts = () => {
   const { profile } = useAuth();
   const { history, isLoading } = useWeightLog();
+  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyCalories();
+
+  const targetKcal = (profile as any)?.target_kcal
+    ? Number((profile as any).target_kcal)
+    : null;
 
   const targetWeight = (profile as any)?.target_weight
     ? Number((profile as any).target_weight)
@@ -40,6 +49,76 @@ const Charts = () => {
     <>
       <PageHeader title="Grafici" />
       <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
+        {/* Weekly calories chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">🔥 Calorie Ultimi 7 Giorni</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {weeklyLoading ? (
+              <div className="flex h-48 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : !weeklyData || weeklyData.every((d) => d.kcal === 0) ? (
+              <div className="flex h-48 items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  Nessun dato calorie negli ultimi 7 giorni.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={weeklyData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10 }}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    className="fill-muted-foreground"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                      fontSize: 12,
+                    }}
+                    formatter={(value: number) => [`${value} kcal`, "Calorie"]}
+                  />
+                  {targetKcal && (
+                    <ReferenceLine
+                      y={targetKcal}
+                      stroke="hsl(var(--accent))"
+                      strokeDasharray="6 3"
+                      label={{
+                        value: `Target ${targetKcal}`,
+                        position: "right",
+                        fill: "hsl(var(--accent))",
+                        fontSize: 9,
+                      }}
+                    />
+                  )}
+                  <Bar dataKey="kcal" radius={[4, 4, 0, 0]}>
+                    {(weeklyData ?? []).map((entry, index) => (
+                      <Cell
+                        key={index}
+                        fill={
+                          targetKcal && entry.kcal > targetKcal
+                            ? "hsl(var(--accent))"
+                            : "hsl(var(--primary))"
+                        }
+                        fillOpacity={0.8}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Weight chart */}
         <Card>
           <CardHeader className="pb-2">
