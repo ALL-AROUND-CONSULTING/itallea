@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -212,11 +213,34 @@ const MyProducts = () => {
           </div>
 
           {view === "recipes" ? (
-            <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-              <ChefHat className="h-12 w-12 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                Le ricette saranno disponibili a breve!
-              </p>
+            <div className="px-4 pb-6 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Antipasti", icon: "🍢" },
+                  { label: "Primi", icon: "🍝" },
+                  { label: "Secondi", icon: "🥩" },
+                  { label: "Contorni", icon: "🥗" },
+                  { label: "Dolci", icon: "🧁" },
+                  { label: "Aggiungi una nuova categoria", icon: "➕", isAdd: true },
+                ].map((cat) => (
+                  <Card
+                    key={cat.label}
+                    className={cn(
+                      "flex cursor-pointer flex-col items-center justify-center gap-2 border-0 p-5 shadow-md transition-transform active:scale-95",
+                      cat.isAdd && "border border-dashed border-muted-foreground/30"
+                    )}
+                    onClick={() => toast.info(`"${cat.label}" - Prossimamente!`)}
+                  >
+                    <span className="text-4xl">{cat.icon}</span>
+                    <p className={cn(
+                      "text-center text-sm font-semibold text-foreground",
+                      cat.isAdd && "text-xs text-muted-foreground font-medium"
+                    )}>
+                      {cat.label}
+                    </p>
+                  </Card>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="space-y-3 px-4 pb-6 pt-2">
