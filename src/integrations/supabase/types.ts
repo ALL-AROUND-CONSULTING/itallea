@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      products: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          carbs_per_100g: number
+          created_at: string
+          fat_per_100g: number
+          fiber_per_100g: number
+          id: string
+          image_url: string | null
+          kcal_per_100g: number
+          name: string
+          protein_per_100g: number
+          salt_per_100g: number
+          source: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name: string
+          protein_per_100g?: number
+          salt_per_100g?: number
+          source?: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name?: string
+          protein_per_100g?: number
+          salt_per_100g?: number
+          source?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           activity_level: string | null
@@ -80,6 +128,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_products: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          carbs_per_100g: number
+          created_at: string
+          fat_per_100g: number
+          fiber_per_100g: number
+          id: string
+          image_url: string | null
+          kcal_per_100g: number
+          name: string
+          protein_per_100g: number
+          salt_per_100g: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name: string
+          protein_per_100g?: number
+          salt_per_100g?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name?: string
+          protein_per_100g?: number
+          salt_per_100g?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -101,6 +200,69 @@ export type Database = {
         }
         Relationships: []
       }
+      weighings: {
+        Row: {
+          carbs: number
+          created_at: string
+          fat: number
+          grams: number
+          id: string
+          kcal: number
+          logged_at: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          product_id: string | null
+          product_name: string
+          protein: number
+          user_id: string
+          user_product_id: string | null
+        }
+        Insert: {
+          carbs?: number
+          created_at?: string
+          fat?: number
+          grams: number
+          id?: string
+          kcal?: number
+          logged_at?: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          product_id?: string | null
+          product_name: string
+          protein?: number
+          user_id: string
+          user_product_id?: string | null
+        }
+        Update: {
+          carbs?: number
+          created_at?: string
+          fat?: number
+          grams?: number
+          id?: string
+          kcal?: number
+          logged_at?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          product_id?: string | null
+          product_name?: string
+          protein?: number
+          user_id?: string
+          user_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -116,6 +278,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -244,6 +407,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      meal_type: ["breakfast", "lunch", "dinner", "snack"],
     },
   },
 } as const
