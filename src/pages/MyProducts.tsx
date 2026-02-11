@@ -193,23 +193,69 @@ const MyProducts = () => {
     return (
       <>
         <div className="mx-auto max-w-lg">
-          {/* Sub-page header */}
+         {/* Sub-page header with gradient */}
           <div
-            className="flex items-center gap-3 px-4 pb-4 pt-10"
+            className="relative overflow-hidden pb-6"
             style={{
               background:
-                "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(var(--background)) 100%)",
+                "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
+              borderRadius: "0 0 2rem 2rem",
             }}
           >
-            <button
-              onClick={() => setView("hub")}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 shadow-sm"
-            >
-              <ArrowLeft className="h-5 w-5 text-foreground" />
-            </button>
-            <h1 className="text-lg font-bold text-foreground">
-              {view === "recipes" ? "Il mio ricettario" : "I miei prodotti"}
-            </h1>
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-2 pt-10 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+                <span className="text-base">🍽️</span>
+              </div>
+              <span
+                className="text-xl font-bold tracking-wide"
+                style={{ color: "hsl(var(--brand-dark-blue))" }}
+              >
+                ITAL LEA
+              </span>
+            </div>
+
+            {/* Title row */}
+            <div className="flex items-center justify-between px-5 pb-4">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setView("hub")}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 shadow-sm"
+                >
+                  <ArrowLeft className="h-5 w-5 text-foreground" />
+                </button>
+                <h1 className="text-lg font-bold text-foreground">
+                  {view === "recipes" ? "Il mio Ricettario" : "I miei alimenti"}
+                </h1>
+              </div>
+              {view === "products" && (
+                <button
+                  onClick={openNew}
+                  className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
+                  style={{ background: "hsl(var(--brand-blue))" }}
+                  aria-label="Aggiungi prodotto"
+                >
+                  <Plus className="h-5 w-5 text-white" />
+                </button>
+              )}
+            </div>
+
+            {/* Search bar (only for products) */}
+            {view === "products" && (
+              <div className="px-5">
+                <div className="flex items-center gap-2 rounded-xl bg-white/80 px-3 py-2.5 shadow-sm backdrop-blur-sm">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Cerca"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                  />
+                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            )}
           </div>
 
           {view === "recipes" ? (
@@ -243,22 +289,7 @@ const MyProducts = () => {
               </div>
             </div>
           ) : (
-            <div className="space-y-3 px-4 pb-6 pt-2">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cerca…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <Button size="icon" onClick={openNew}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
+            <div className="px-4 pb-6 pt-4">
               {loading && (
                 <div className="flex justify-center py-12">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -269,7 +300,7 @@ const MyProducts = () => {
                 <div className="flex flex-col items-center gap-3 py-12 text-center">
                   <Package className="h-10 w-10 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground">
-                    Nessun prodotto personale ancora.
+                    Nessun alimento personale ancora.
                   </p>
                   <Button size="sm" onClick={openNew}>
                     <Plus className="mr-1 h-4 w-4" /> Aggiungi il primo
@@ -277,45 +308,34 @@ const MyProducts = () => {
                 </div>
               )}
 
-              {filtered.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {p.name}
-                    </div>
-                    {p.brand && (
-                      <div className="text-xs text-muted-foreground">
-                        {p.brand}
-                      </div>
-                    )}
-                    <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
-                      <span>{p.kcal_per_100g} kcal</span>
-                      <span>P {p.protein_per_100g}g</span>
-                      <span>C {p.carbs_per_100g}g</span>
-                      <span>G {p.fat_per_100g}g</span>
-                    </div>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 shrink-0"
+              {/* Clean product list */}
+              <div className="space-y-0 divide-y divide-border">
+                {filtered.map((p) => (
+                  <button
+                    key={p.id}
+                    className="flex w-full items-center justify-between py-3.5 text-left transition-colors active:bg-muted/50"
                     onClick={() => openEdit(p)}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteId(p.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {p.name}
+                        {p.brand ? ` ${p.brand}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteId(p.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
