@@ -1,30 +1,35 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { useWeightLog } from "@/hooks/useWeightLog";
+import { TrendingDown, TrendingUp, Minus, Save } from "lucide-react";
+import { toast } from "sonner";
 
 export function WeightSlide() {
-  const { user } = useAuth();
-  const [currentWeight, setCurrentWeight] = useState<number | null>(null);
-  const [targetWeight, setTargetWeight] = useState<number | null>(null);
+  const { profile } = useAuth();
+  const { latest, logWeight } = useWeightLog();
+  const [input, setInput] = useState("");
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("current_weight, target_weight")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setCurrentWeight(data.current_weight ? Number(data.current_weight) : null);
-          setTargetWeight(data.target_weight ? Number(data.target_weight) : null);
-        }
-      });
-  }, [user]);
-
+  const currentWeight = latest?.weight_kg ?? (profile as any)?.current_weight ?? null;
+  const targetWeight = (profile as any)?.target_weight ?? null;
   const diff = currentWeight && targetWeight ? currentWeight - targetWeight : null;
+
+  const handleLog = () => {
+    const val = parseFloat(input);
+    if (isNaN(val) || val < 20 || val > 400) {
+      toast.error("Inserisci un peso valido (20-400 kg)");
+      return;
+    }
+    logWeight.mutate(val, {
+      onSuccess: () => {
+        toast.success("Peso registrato!");
+        setInput("");
+      },
+      onError: () => toast.error("Errore nel salvataggio"),
+    });
+  };
 
   return (
     <Card className="mx-2 h-full">
@@ -38,7 +43,9 @@ export function WeightSlide() {
               {currentWeight ? `${currentWeight}` : "—"}
               <span className="text-lg font-normal text-muted-foreground"> kg</span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Peso attuale</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {latest ? `Ultimo: ${latest.logged_at}` : "Peso attuale"}
+            </p>
           </div>
 
           {targetWeight && (
@@ -64,9 +71,28 @@ export function WeightSlide() {
             </div>
           )}
 
-          {!currentWeight && (
-            <p className="text-xs text-muted-foreground">Completa l'onboarding per vedere i dati</p>
-          )}
+          {/* Quick log */}
+          <div className="flex w-full max-w-[200px] gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              min="20"
+              max="400"
+              placeholder="es. 75.2"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLog()}
+              className="text-center"
+            />
+            <Button
+              size="icon"
+              onClick={handleLog}
+              disabled={logWeight.isPending || !input}
+            >
+              <Save className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">Registra il peso di oggi</p>
         </div>
       </CardContent>
     </Card>
