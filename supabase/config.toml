@@ -2,3 +2,6 @@ project_id = "uqnxdjehsgewuzjcwien"
 
 [functions.get-daily-nutrition]
 verify_jwt = false
+
+[functions.lookup-barcode]
+verify_jwt = false
