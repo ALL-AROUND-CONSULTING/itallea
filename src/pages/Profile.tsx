@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2 } from "lucide-react";
+import { LogOut, Moon, Scale, Download, Trash2, Package } from "lucide-react";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario" },
@@ -276,6 +276,14 @@ const Profile = () => {
 
         {/* Placeholder sections */}
         <div className="space-y-2">
+          <button
+            className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-foreground"
+            onClick={() => navigate("/my-products")}
+          >
+            <Package className="h-4 w-4 text-primary" />
+            <span>I miei prodotti</span>
+            <span className="ml-auto text-xs text-muted-foreground">→</span>
+          </button>
           <button className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground" disabled>
             <Scale className="h-4 w-4" />
             <span>La mia bilancia</span>
