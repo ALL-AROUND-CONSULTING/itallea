@@ -1,1 +1,4 @@
 project_id = "uqnxdjehsgewuzjcwien"
+
+[functions.get-daily-nutrition]
+verify_jwt = false
