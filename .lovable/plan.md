@@ -1,97 +1,112 @@
 
 
-# Step C1: Edge Function `lookup-barcode`
+# Redesign Homepage - Fedele al Mockup UI
 
-## Obiettivo
-Creare una Edge Function che riceve un codice a barre, lo cerca prima nel database locale (`products`), e se non lo trova fa fallback sull'API pubblica **Open Food Facts** per recuperare i dati nutrizionali. Se trovato su OFF, il prodotto viene salvato nella tabella `products` per le ricerche future.
+## Analisi del Mockup
 
----
+La UI di riferimento ha una struttura verticale (non carousel) con questi blocchi dall'alto in basso:
 
-## Flusso logico
+1. **Header con gradiente azzurro** - Logo "ITAL LEA" centrato con icona, sfondo gradiente celeste curvo
+2. **Saluto utente** - Avatar circolare a sinistra, "Ciao + Nome" e icona Bluetooth/dispositivo a destra
+3. **Sezione dispositivo** - Banner "Il mio dispositivo >" con info bilancia connessa (N. Serie)
+4. **Card Calorie (stile donut chart)** - Titolo "Oggi" / "Calorie", sotto-titolo "Rimanente - Obiettivo - Alimenti - Esercizi", grafico donut con 3 colori (arancione, blu, grigio) e legenda a destra (Carboidrati 500, Proteine 800, Grassi 700), legenda pallini sotto (Sotto soglia / Nel tuo obiettivo / Sopra soglia), dots di paginazione
+5. **Due card affiancate in basso** - "Idratazione" (icona goccia, 1.500 ml, obiettivo 2500 ml) e "Il mio database" (illustrazione, "Aggiungi ricetta o alimento")
+6. **Bottom Nav a 5 icone** - Home, Database, + (centrale grande), Impostazioni, Profilo
 
-```text
-Client invia GET /lookup-barcode?code=1234567890
-         |
-         v
-  Cerca in tabella "products" per barcode
-         |
-    +----+----+
-    |         |
- Trovato   Non trovato
-    |         |
-    v         v
- Ritorna   Chiama Open Food Facts API
- prodotto  GET https://world.openfoodfacts.org/api/v2/product/{code}
-              |
-         +----+----+
-         |         |
-      Trovato   Non trovato
-         |         |
-         v         v
-   Salva in     Ritorna 404
-   "products"   { found: false }
-   e ritorna
+## Differenze principali rispetto all'attuale
+
+| Elemento | Attuale | Target |
+|----------|---------|--------|
+| Layout | Carousel orizzontale 4 slide | Scroll verticale, tutto visibile |
+| Header | Barra semplice con testo | Gradiente azzurro curvo con logo |
+| Saluto | Assente | Avatar + "Ciao Nome" |
+| Dispositivo | Assente | Banner bilancia connessa |
+| Calorie | 4 progress ring piccoli | Grande donut chart con legenda |
+| Idratazione | Slide dedicata (SVG goccia grande) | Card compatta affiancata |
+| Database | Assente nella home | Card compatta "Aggiungi ricetta" |
+| Bottom Nav | 5 item testuali | 5 item con + centrale prominente |
+
+## Piano di Implementazione
+
+### 1. Aggiornare il tema colori
+
+Aggiungere variabili CSS per il blu brand della UI (gradiente header azzurro, colori donut chart):
+- `--brand-blue: 210 80% 55%`
+- `--brand-light-blue: 200 90% 92%`
+
+In `src/index.css`.
+
+### 2. Creare il componente HomeHeader
+
+Nuovo file `src/components/dashboard/HomeHeader.tsx`:
+- Sfondo con gradiente da celeste chiaro a bianco, bordo inferiore curvo (border-radius o clip-path)
+- Logo "ITAL LEA" centrato (testo stilizzato, niente immagine esterna)
+- Riga sotto: avatar circolare con iniziali utente (da `useAuth().profile`), testo "Ciao {first_name}", icona dispositivo a destra
+
+### 3. Creare il componente DeviceBanner
+
+Nuovo file `src/components/dashboard/DeviceBanner.tsx`:
+- Banner con sfondo scuro/blu "Il mio dispositivo >"
+- Sotto: testo "Bilancia Ital Lea connessa." + "N. Serie ..." (placeholder statico per ora)
+- Card con bordo arrotondato
+
+### 4. Rifare la CaloriesCard con Donut Chart
+
+Nuovo file `src/components/dashboard/CaloriesDonutCard.tsx`:
+- Titolo "Oggi" centrato in blu
+- Sottotitolo "Calorie" bold + riga "Rimanente - Obiettivo - Alimenti - Esercizi"
+- Donut chart SVG con 3 segmenti colorati (carboidrati=grigio, proteine=blu, grassi=arancione)
+- Legenda a destra del donut: pallino colorato + nome + valore
+- Legenda sotto: 3 pallini con label (Sotto soglia verde, Nel tuo obiettivo arancione, Sopra soglia rosso)
+- Dots indicatore paginazione (3 pallini, decorativi)
+- Usa i dati da `useDailyNutrition()`
+
+### 5. Creare le due card affiancate in basso
+
+Nuovo file `src/components/dashboard/QuickCards.tsx`:
+- Layout flex/grid 2 colonne
+- **Card Idratazione**: icona goccia, valore attuale (es. 1.500 ml), "Obiettivo: 2500 ml" -- dati da `useWaterLog()`
+- **Card "Il mio database"**: icona/illustrazione stilizzata, testo "Aggiungi ricetta o alimento", click naviga a `/my-products`
+
+### 6. Aggiornare la BottomNav
+
+Modificare `src/components/layout/BottomNav.tsx`:
+- 5 voci: Home, Database, + (centrale), Impostazioni, Profilo
+- Il pulsante centrale "+" diventa un cerchio grande rialzato (stile FAB) con sfondo blu
+- Le label diventano: Home, Database, (nessuna label per +), Impostazioni, Profilo
+- Rimuovere l'ActionBar separata (le sue funzioni migrano nel "+" della BottomNav che apre il WeighingModal o un menu)
+
+### 7. Riscrivere Index.tsx
+
+Rimuovere il carousel Embla. Struttura verticale:
+```
+<HomeHeader />
+<DeviceBanner />
+<CaloriesDonutCard data={nutrition} />
+<QuickCards />
 ```
 
----
+### 8. Aggiornare AppLayout.tsx
 
-## Dettagli tecnici
-
-### 1. Registrazione in `supabase/config.toml`
-Aggiungere la configurazione della nuova funzione con `verify_jwt = false` (la validazione JWT avviene nel codice).
-
-### 2. File `supabase/functions/lookup-barcode/index.ts`
-
-**Autenticazione**: Stessa struttura dell'edge function esistente -- legge l'header `Authorization`, crea il client Supabase con service role key, valida l'utente.
-
-**Logica principale**:
-
-1. Legge il query param `code` (barcode)
-2. Cerca nella tabella `products` con `.eq("barcode", code).maybeSingle()`
-3. Se trovato, ritorna `{ found: true, product: {...}, source: "local" }`
-4. Se non trovato, chiama `https://world.openfoodfacts.org/api/v2/product/{code}?fields=product_name,brands,nutriments,image_url`
-5. Se OFF ritorna `status: 1` (prodotto trovato):
-   - Estrae i valori nutrizionali dal campo `nutriments` di OFF:
-     - `energy-kcal_100g` -> `kcal_per_100g`
-     - `proteins_100g` -> `protein_per_100g`
-     - `carbohydrates_100g` -> `carbs_per_100g`
-     - `fat_100g` -> `fat_per_100g`
-     - `fiber_100g` -> `fiber_per_100g`
-     - `salt_100g` -> `salt_per_100g`
-   - Inserisce il prodotto nella tabella `products` con `source: 'openfoodfacts'` usando il service role client (bypassa RLS)
-   - Ritorna `{ found: true, product: {...}, source: "openfoodfacts" }`
-6. Se OFF ritorna status 0 o errore: ritorna `{ found: false }`
-
-**Gestione errori**: Timeout di 5 secondi per la chiamata a OFF tramite `AbortController`. Se OFF non risponde, ritorna un errore 502 con messaggio chiaro.
-
-### 3. Struttura della risposta
-
-```text
-Successo (200):
-{
-  found: true,
-  product: {
-    id, name, brand, barcode,
-    kcal_per_100g, protein_per_100g, carbs_per_100g,
-    fat_per_100g, fiber_per_100g, salt_per_100g,
-    image_url, source
-  },
-  source: "local" | "openfoodfacts"
-}
-
-Non trovato (404):
-{ found: false }
-```
-
-### 4. Nessun segreto aggiuntivo richiesto
-Open Food Facts e' un'API pubblica, non richiede chiavi API.
-
----
+Rimuovere o rendere condizionale l'ActionBar sulla homepage (dato che il "+" migra nella BottomNav).
 
 ## File coinvolti
 
 | File | Azione |
 |------|--------|
-| `supabase/functions/lookup-barcode/index.ts` | Nuovo |
-| `supabase/config.toml` | Aggiunta entry funzione |
+| `src/index.css` | Aggiungere variabili colore brand blu |
+| `src/components/dashboard/HomeHeader.tsx` | **Nuovo** - Header gradiente + saluto |
+| `src/components/dashboard/DeviceBanner.tsx` | **Nuovo** - Banner dispositivo |
+| `src/components/dashboard/CaloriesDonutCard.tsx` | **Nuovo** - Donut chart calorie |
+| `src/components/dashboard/QuickCards.tsx` | **Nuovo** - 2 card affiancate |
+| `src/pages/Index.tsx` | **Riscrivere** - Layout verticale |
+| `src/components/layout/BottomNav.tsx` | **Modificare** - FAB centrale + nuove voci |
+| `src/components/layout/AppLayout.tsx` | **Modificare** - ActionBar condizionale |
+
+## Note tecniche
+
+- Il donut chart sara' realizzato in SVG puro (stroke-dasharray/offset su cerchi) senza librerie aggiuntive, coerente con l'approccio gia' usato per ProgressRing
+- I componenti GoalsSlide, MealCaloriesSlide, WaterSlide, WeightSlide rimangono disponibili per altre pagine (Diary, Charts) ma non piu' usati nella homepage
+- I dati vengono dagli stessi hook esistenti (`useDailyNutrition`, `useWaterLog`, `useAuth`)
+- Il DeviceBanner e' statico/placeholder per ora (nessuna integrazione Bluetooth reale)
 
