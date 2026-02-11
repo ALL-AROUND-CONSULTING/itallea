@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useDailyNutrition } from "@/hooks/useDailyNutrition";
 import { GoalsSlide } from "@/components/dashboard/GoalsSlide";
 import { MealCaloriesSlide } from "@/components/dashboard/MealCaloriesSlide";
+import { WaterSlide } from "@/components/dashboard/WaterSlide";
 import { WeightSlide } from "@/components/dashboard/WeightSlide";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -59,6 +60,9 @@ const Index = () => {
                   <MealCaloriesSlide data={nutrition} />
                 </div>
                 <div className="min-w-0 flex-[0_0_100%]">
+                  <WaterSlide />
+                </div>
+                <div className="min-w-0 flex-[0_0_100%]">
                   <WeightSlide />
                 </div>
               </div>
@@ -66,7 +70,7 @@ const Index = () => {
 
             {/* Dots indicator */}
             <div className="mt-3 flex items-center justify-center gap-1.5">
-              {[0, 1, 2].map((i) => (
+              {[0, 1, 2, 3].map((i) => (
                 <button
                   key={i}
                   onClick={() => emblaApi?.scrollTo(i)}
