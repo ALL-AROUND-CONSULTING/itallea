@@ -12,6 +12,7 @@ import Diary from "./pages/Diary";
 import Scan from "./pages/Scan";
 import Charts from "./pages/Charts";
 import Profile from "./pages/Profile";
+import MyProducts from "./pages/MyProducts";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/scan" element={<Scan />} />
                 <Route path="/charts" element={<Charts />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/my-products" element={<MyProducts />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
