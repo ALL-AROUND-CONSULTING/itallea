@@ -41,7 +41,7 @@ serve(async (req) => {
     // Fetch weighings for the day
     const { data: weighings, error: wError } = await supabase
       .from("weighings")
-      .select("meal_type, kcal, protein, carbs, fat, product_name, grams")
+      .select("id, meal_type, kcal, protein, carbs, fat, product_name, grams")
       .eq("user_id", user.id)
       .eq("logged_at", date);
 
@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const meals = { breakfast: [], lunch: [], dinner: [], snack: [] } as Record<
       string,
-      Array<{ name: string; grams: number; kcal: number; protein: number; carbs: number; fat: number }>
+      Array<{ id: string; name: string; grams: number; kcal: number; protein: number; carbs: number; fat: number }>
     >;
     const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
     const mealTotals = {
@@ -73,6 +73,7 @@ serve(async (req) => {
 
     for (const w of weighings ?? []) {
       const entry = {
+        id: w.id,
         name: w.product_name,
         grams: Number(w.grams),
         kcal: Number(w.kcal),
