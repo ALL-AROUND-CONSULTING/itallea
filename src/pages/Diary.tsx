@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Trash2, Plus, Minus, Droplets } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Pencil, Minus, Droplets } from "lucide-react";
+import { EditWeighingModal } from "@/components/weighing/EditWeighingModal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useDailyNutrition } from "@/hooks/useDailyNutrition";
 import { useWaterLog } from "@/hooks/useWaterLog";
@@ -34,6 +35,7 @@ const Diary = () => {
   const waterGoal = profile?.water_goal_ml ?? 2000;
   const waterPct = Math.min(Math.round((totalMl / waterGoal) * 100), 100);
   const queryClient = useQueryClient();
+  const [editItem, setEditItem] = useState<{ item: any; mealKey: string } | null>(null);
 
   const goBack = () => setDate((d) => subDays(d, 1));
   const goForward = () => {
@@ -139,7 +141,8 @@ const Diary = () => {
                           {items.map((item: any, idx: number) => (
                             <div
                               key={item.id ?? idx}
-                              className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                              className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 cursor-pointer transition-colors active:bg-muted"
+                              onClick={() => item.id && setEditItem({ item, mealKey: meal.key })}
                             >
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-foreground">
@@ -153,14 +156,30 @@ const Diary = () => {
                                 </p>
                               </div>
                               {item.id && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="ml-2 h-7 w-7 shrink-0 text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleDelete(item.id)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                <div className="flex gap-1 ml-2 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditItem({ item, mealKey: meal.key });
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(item.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               )}
                             </div>
                           ))}
@@ -220,6 +239,16 @@ const Diary = () => {
           </>
         )}
       </div>
+
+      {editItem && (
+        <EditWeighingModal
+          open={!!editItem}
+          onOpenChange={(v) => !v && setEditItem(null)}
+          item={editItem.item}
+          mealType={editItem.mealKey}
+          dateStr={dateStr}
+        />
+      )}
     </>
   );
 };
