@@ -321,7 +321,7 @@ const Scan = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="bg-black/60 px-6 pb-8 pt-4 backdrop-blur">
+        <div className="bg-black/60 px-6 pb-10 pt-5 backdrop-blur" style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom, 2.5rem))" }}>
           <div className="mx-auto flex max-w-sm justify-center gap-8">
             <button
               onClick={() => { stopScanner(); setShowManual(true); }}
