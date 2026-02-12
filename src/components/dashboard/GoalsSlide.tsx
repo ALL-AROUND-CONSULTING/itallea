@@ -1,49 +1,99 @@
-import { ProgressRing } from "./ProgressRing";
 import type { DailyNutrition } from "@/hooks/useDailyNutrition";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
+import { Flag, Flame } from "lucide-react";
 
 interface GoalsSlideProps {
   data: DailyNutrition;
 }
 
-const rings = [
-  { key: "kcal", label: "Calorie", color: "hsl(var(--primary))", unit: undefined },
-  { key: "protein", label: "Proteine", color: "hsl(var(--chart-3))", unit: "g" },
-  { key: "carbs", label: "Carbo", color: "hsl(var(--accent))", unit: "g" },
-  { key: "fat", label: "Grassi", color: "hsl(var(--chart-4))", unit: "g" },
-] as const;
-
 export function GoalsSlide({ data }: GoalsSlideProps) {
-  const { totals, targets, percentages } = data;
+  const { totals, targets } = data;
+  const pct = targets.kcal > 0 ? totals.kcal / targets.kcal : 0;
+
+  // Gauge: 180° arc from -90° to +90°
+  const cx = 100;
+  const cy = 90;
+  const r = 70;
+
+  // Build arc path helper
+  const arcPath = (startAngle: number, endAngle: number) => {
+    const toRad = (a: number) => (a * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(toRad(startAngle));
+    const y1 = cy + r * Math.sin(toRad(startAngle));
+    const x2 = cx + r * Math.cos(toRad(endAngle));
+    const y2 = cy + r * Math.sin(toRad(endAngle));
+    const large = endAngle - startAngle > 180 ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+  };
+
+  // Needle angle: 0% = -90° (left), 100% = 0° (center/top), >100% = up to 90° (right)
+  const clampedPct = Math.min(pct, 1.5);
+  const needleAngle = -90 + clampedPct * 90; // maps 0->-90, 1->0, 1.5->45
+  const needleRad = (needleAngle * Math.PI) / 180;
+  const needleLen = r - 12;
+  const nx = cx + needleLen * Math.cos(needleRad);
+  const ny = cy + needleLen * Math.sin(needleRad);
+
+  const legends = [
+    { label: "Sotto soglia", color: "hsl(210, 15%, 75%)" },
+    { label: "Nel tuo obiettivo", color: "hsl(142, 55%, 45%)" },
+    { label: "Sopra soglia", color: "hsl(0, 72%, 51%)" },
+  ];
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2 pt-4">
-        <CardTitle className="text-center text-sm font-semibold">🎯 Obiettivi Giornalieri</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-around">
-          {rings.map((r, i) => (
-            <motion.div
-              key={r.key}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: i * 0.08, duration: 0.35, ease: "easeOut" }}
-            >
-              <ProgressRing
-                value={percentages[r.key]}
-                current={totals[r.key]}
-                target={targets[r.key]}
-                label={r.label}
-                unit={r.unit}
-                color={r.color}
-                size={76}
-              />
-            </motion.div>
-          ))}
+    <Card className="border-0 shadow-md p-4">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-lg font-bold text-foreground">Obiettivi</h3>
+        <span className="text-xs font-semibold" style={{ color: "hsl(var(--brand-blue))" }}>Oggi</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-3">
+        Rimanente = Obiettivo - Alimenti + Esercizi
+      </p>
+
+      <div className="flex items-center gap-4">
+        {/* Gauge */}
+        <div className="flex-shrink-0">
+          <svg width="200" height="110" viewBox="0 0 200 110">
+            {/* Gray zone (under target) -90° to -20° */}
+            <path d={arcPath(-180, -110)} fill="none" stroke="hsl(210, 15%, 80%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Green zone (on target) -20° to 10° */}
+            <path d={arcPath(-110, -20)} fill="none" stroke="hsl(142, 55%, 45%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Red zone (over target) 10° to 90° */}
+            <path d={arcPath(-20, 0)} fill="none" stroke="hsl(0, 72%, 51%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Needle */}
+            <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="hsl(var(--foreground))" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx={cx} cy={cy} r="4" fill="hsl(var(--foreground))" />
+          </svg>
         </div>
-      </CardContent>
+
+        {/* Right info */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Flag className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Obiettivo base</p>
+              <p className="text-sm font-bold text-foreground">{targets.kcal}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4" style={{ color: "hsl(var(--accent))" }} />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Alimenti</p>
+              <p className="text-sm font-bold text-foreground">{totals.kcal}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border">
+        {legends.map((l) => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full" style={{ background: l.color }} />
+            <span className="text-[10px] text-muted-foreground">{l.label}</span>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
