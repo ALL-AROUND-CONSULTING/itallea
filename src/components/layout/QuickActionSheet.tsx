@@ -40,10 +40,7 @@ export function QuickActionSheet({ open, onOpenChange }: QuickActionSheetProps) 
 
   const handleWater = () => {
     onOpenChange(false);
-    addGlass.mutate(250, {
-      onSuccess: () => toast.success("💧 Bicchiere d'acqua aggiunto!"),
-      onError: () => toast.error("Errore nell'aggiungere acqua"),
-    });
+    navigate("/hydration");
   };
 
   const handleWeight = () => {
@@ -100,7 +97,7 @@ export function QuickActionSheet({ open, onOpenChange }: QuickActionSheetProps) 
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                 <Droplets className="h-5 w-5 text-blue-500" />
               </div>
-              <span className="text-sm font-medium text-foreground">Acqua (+250ml)</span>
+              <span className="text-sm font-medium text-foreground">Acqua</span>
             </button>
 
             <button
