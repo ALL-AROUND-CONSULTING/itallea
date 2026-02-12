@@ -32,7 +32,7 @@ export function WeightSlide() {
   };
 
   return (
-    <Card className="mx-2 h-full">
+    <Card className="h-full">
       <CardHeader className="pb-2 pt-4">
         <CardTitle className="text-center text-sm font-semibold">⚖️ Peso</CardTitle>
       </CardHeader>
