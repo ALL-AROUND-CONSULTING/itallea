@@ -21,6 +21,22 @@ export function SocialLoginButtons() {
     }
   };
 
+  const handleApple = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result?.error) {
+        toast.error("Errore accesso Apple: " + (result.error as Error).message);
+      }
+    } catch {
+      toast.error("Errore accesso Apple");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex w-full items-center gap-3">
@@ -33,8 +49,9 @@ export function SocialLoginButtons() {
         {/* Apple – visual placeholder */}
         <button
           type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background hover:bg-muted transition-colors"
-          onClick={() => toast.info("Apple Sign In sarà disponibile a breve")}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50"
+          onClick={handleApple}
+          disabled={loading}
           aria-label="Sign in with Apple"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
