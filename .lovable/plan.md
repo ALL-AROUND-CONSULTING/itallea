@@ -1,91 +1,94 @@
 
 
-# Ricostruzione Fedele delle Schermate Auth dal Design Figma
+# Ricostruzione Home Page + Navbar dal Design Figma
 
-## Analisi del Design
+## Correzioni rispetto al piano precedente
 
-Dallo screenshot emergono **5 schermate** con uno stile coerente:
+### 1. Header: Scanner, non Bluetooth
+L'icona in alto a destra nel design e uno **scanner** (barcode/QR), non un'icona Bluetooth. Verra sostituita con l'icona `ScanLine` da lucide-react e collegata alla pagina `/scan`.
 
-1. **Splash/Welcome** -- Logo grande in basso a sinistra, sfondo bianco, pulsante "Login" blu in basso, link "Non hai un account? Registrati"
-2. **Login** -- Logo centrato in alto, campi Email (icona busta) e Password (icona lucchetto + toggle occhio) con bordo arrotondato grigio, pulsante blu "Login", separatore "Oppure / Entra con:", icone social Apple + Google + Facebook
-3. **Registrati** -- Come Login ma con campo "Conferma la Password" aggiuntivo, pulsante "Registrati", stesse icone social, "Hai gia un account? Accedi"
-4. **Verifica Email (vuoto)** -- Logo in alto, freccia indietro, titolo "Verifica email", descrizione con email utente, 6 caselle OTP vuote e separate, "Non hai ricevuto il codice? Invia di nuovo", pulsante "Verifica" grigio/disabilitato
-5. **Verifica Email (compilato)** -- Stesse caselle OTP riempite, pulsante "Verifica" blu/attivo
+### 2. Bottom Nav: replica fedele dal mockup
+Dal mockup il navbar in basso mostra esattamente:
+- **Home** (icona casa, attiva = blu)
+- **Database** (icona database/griglia)
+- **+** (FAB centrale blu, rialzato)
+- **Impostazioni** (icona ingranaggio)
+- **Profilo** (icona utente)
 
-### Elementi di design chiave
-- **Sfondo**: Bianco puro (`#FFFFFF`)
-- **Colore primario**: Blu `~#4A90D9` (non il verde attuale!)
-- **Logo**: "ITAL LEA" con icona telefono/bilancia tra le parole, tagline "L'equilibrio italiano a portata di app" con "no" in verde e rosso (tricolore)
-- **Campi input**: Bordo grigio chiaro arrotondato, icona a sinistra (busta per email, lucchetto per password), toggle visibilita a destra per password
-- **Pulsanti**: Full-width, bordo arrotondato (pill-shaped, `rounded-full`), sfondo blu
-- **Social login**: Tre icone circolari (Apple, Google, Facebook) -- nota: Facebook non e supportato da Lovable Cloud, verra mostrato solo Google (e Apple se configurato)
-- **OTP**: 6 caselle separate con bordo, non raggruppate
+Le etichette sono visibili sotto ogni icona. L'elemento attivo e evidenziato in blu brand. Il FAB centrale e un cerchio blu rialzato con icona `+` bianca. Non ci sono indicatori animati aggiuntivi (niente linea sotto l'icona attiva) -- stile pulito e minimale.
 
-## Piano di Implementazione
+### 3. Rimozione ActionBar
+L'ActionBar secondaria (scan/pesata/diario sopra la navbar) non esiste nel mockup. Verra rimossa dalla home e la sua funzionalita (scan, pesata) resta nel FAB e nel pulsante scanner dell'header.
 
-### 1. Creare componente `AuthLogo`
-Un componente riutilizzabile che riproduce il logo "ITAL LEA" come testo stilizzato (il logo vero verra sostituito quando caricherete l'immagine). Include la tagline con i colori del tricolore.
+## Piano di Implementazione Completo
 
-### 2. Creare pagina Splash/Welcome (`/welcome`)
-- Sfondo bianco, logo posizionato in basso a sinistra
-- Pulsante "Login" blu pill-shaped in basso
-- Link "Non hai un account? Registrati" sotto il pulsante
-- Rotta `/welcome` aggiunta come landing page pubblica
+### File da modificare/creare
 
-### 3. Riscrivere `Login.tsx`
-- Rimuovere la Card shadcn e usare un layout diretto su sfondo bianco
-- Logo `AuthLogo` centrato in alto
-- Input personalizzati con icone inline (Mail, Lock, Eye/EyeOff da lucide-react)
-- Pulsante "Login" blu pill-shaped full-width
-- Separatore "Oppure" + "Entra con:" con icone social (Google funzionante, Apple come placeholder visivo)
-- Link "Non hai un account? Registrati" in fondo
-
-### 4. Riscrivere `Register.tsx`
-- Stesso layout del Login
-- Tre campi: Email, Password, Conferma Password (con validazione match)
-- Checkbox GDPR mantenuto
-- Pulsante "Registrati" blu
-- Social login identico
-- "Hai gia un account? Accedi"
-
-### 5. Riscrivere `VerifyEmail.tsx`
-- Logo centrato in alto
-- Freccia indietro (ChevronLeft) in alto a sinistra
-- Titolo "Verifica email" grande e centrato
-- Descrizione con email dell'utente
-- 6 InputOTPSlot **separati** (non raggruppati), con bordo visibile
-- "Non hai ricevuto il codice? Invia di nuovo" con link blu
-- Pulsante "Verifica" che diventa grigio quando vuoto, blu quando compilato
-
-### 6. Aggiornare `ForgotPassword.tsx`
-- Stesso stile delle altre schermate (logo, sfondo bianco, input con icone)
-
-### 7. Creare componente `SocialLoginButtons`
-Componente con le tre icone social (Apple, Google) disposte orizzontalmente. Solo Google funzionante tramite `lovable.auth.signInWithOAuth`. Apple come icona visiva (non cliccabile o con messaggio "presto disponibile").
-
-### 8. CSS / Tema
-- Aggiornare i colori `--brand-blue` nelle auth pages
-- Input con stile custom: bordo grigio chiaro, icona a sinistra, padding sinistro per l'icona
-- Pulsanti auth: `rounded-full` (pill shape), sfondo blu brand
-
-## Dettagli Tecnici
-
-### File modificati
 | File | Azione |
 |------|--------|
-| `src/components/auth/AuthLogo.tsx` | Nuovo -- logo testuale riutilizzabile |
-| `src/components/auth/SocialLoginButtons.tsx` | Nuovo -- icone Apple + Google |
-| `src/components/auth/AuthInput.tsx` | Nuovo -- input con icona sinistra e toggle occhio |
-| `src/pages/Welcome.tsx` | Nuovo -- splash screen |
-| `src/pages/Login.tsx` | Riscritto -- layout da design |
-| `src/pages/Register.tsx` | Riscritto -- aggiunto conferma password |
-| `src/pages/VerifyEmail.tsx` | Riscritto -- OTP separati, stile fedele |
-| `src/pages/ForgotPassword.tsx` | Riscritto -- stile coerente |
-| `src/App.tsx` | Aggiunta rotta `/welcome` |
+| `src/components/dashboard/HomeHeader.tsx` | Aggiornato - icona scanner al posto di Bluetooth, naviga a /scan |
+| `src/components/layout/BottomNav.tsx` | Riscritto - stile fedele al mockup, niente indicatore animato |
+| `src/components/layout/AppLayout.tsx` | Aggiornato - rimuovere ActionBar dalla home |
+| `src/components/dashboard/HomeCarousel.tsx` | Nuovo - wrapper Embla per 3 slide con dots |
+| `src/components/dashboard/GoalsSlide.tsx` | Riscritto - gauge semicircolare SVG |
+| `src/components/dashboard/CaloriesDonutCard.tsx` | Aggiornato - stile slide card |
+| `src/components/dashboard/WeightSlide.tsx` | Riscritto - sparkline + layout peso |
+| `src/components/dashboard/QuickCards.tsx` | Aggiornato - Idratazione + Database fedeli |
+| `src/components/dashboard/DeviceBanner.tsx` | Aggiornato - card "Aggiungi dispositivo" |
+| `src/pages/Index.tsx` | Aggiornato - integrazione carosello |
 
-### Nota su Facebook
-Il design mostra l'icona Facebook, ma Lovable Cloud supporta solo Google e Apple come provider OAuth. L'icona Facebook non verra inclusa per evitare confusione.
+### Dettagli tecnici
 
-### Nota sul Logo
-Il logo verra inizialmente reso come testo stilizzato. Potrai sostituirlo con l'immagine reale caricandola nel progetto e aggiornando il componente `AuthLogo`.
+**HomeHeader.tsx**
+- Sostituire `Bluetooth` con `ScanLine` da lucide-react
+- onClick naviga a `/scan`
+- Resto del layout invariato (logo, avatar, saluto)
+
+**BottomNav.tsx**
+- 5 elementi: Home, Database, FAB (+), Impostazioni, Profilo
+- Icone: `Home`, `Database`, `Plus`, `Settings`, `User` da lucide-react
+- FAB: cerchio blu brand rialzato (-mt-6), ombra, icona + bianca
+- Elemento attivo: colore blu brand (testo + icona), inattivi: grigio
+- Nessun indicatore a linea sotto l'icona (rimuovere `layoutId="nav-indicator"`)
+- Sfondo bianco solido con bordo superiore sottile
+
+**AppLayout.tsx**
+- Rimuovere il rendering condizionale di `ActionBar`
+- Mantenere solo `BottomNav`
+- Il padding bottom del main resta per compensare la navbar
+
+**HomeCarousel.tsx**
+- Usa `embla-carousel-react` (gia installato)
+- 3 slide: GoalsSlide, CaloriesDonutCard, WeightSlide
+- Dots indicatori sotto: 3 pallini, quello attivo e blu brand, gli altri grigi
+- Ogni slide e una card con bordi arrotondati, sfondo bianco, ombra leggera
+- Badge "Oggi" blu in alto a destra di ogni card
+
+**GoalsSlide.tsx**
+- Gauge semicircolare SVG custom
+- Arco con 3 zone colorate: grigio (sotto soglia), verde (obiettivo), rosso (sopra)
+- Lancetta nera che ruota in base a percentuale kcal consumate vs obiettivo
+- A destra del gauge: icona bandiera + "Obiettivo base [X]", icona fuoco + "Alimenti [X]"
+- Legenda in basso: 3 pallini con etichette (Sotto soglia, Nel tuo obiettivo, Sopra soglia)
+
+**CaloriesDonutCard.tsx (slide Calorie)**
+- Donut chart a sinistra (recharts PieChart)
+- A destra: 3 righe macro con pallino colorato + nome + valore
+  - Carboidrati (grigio), Proteine (blu), Grassi (arancione)
+- Sottotitolo "Rimanente = Obiettivo - Alimenti + Esercizi"
+
+**WeightSlide.tsx**
+- Riga superiore: Iniziale / Attuale / Variazione % (verde se negativo, rosso se positivo)
+- Peso grande centrato (es. "80.00 kg")
+- Mini sparkline SVG (polyline) con ultimi punti peso
+- Pulsante "+ Inserisci peso" blu pill-shaped in basso
+
+**QuickCards.tsx**
+- Due card affiancate con bordi arrotondati
+- **Idratazione**: icona goccia blu, valore attuale in ml, testo "Obiettivo: [X] ml", barra progresso orizzontale blu
+- **Il mio database**: icona piatto/forchetta, testo "Aggiungi ricetta o alimento", navigazione a /my-products
+
+**DeviceBanner.tsx**
+- Se nessun dispositivo: card con "Aggiungi dispositivo" + "Inizia il tuo viaggio con Ital Lea" + pulsante + blu
+- Se dispositivo connesso: card compatta con nome dispositivo e LED verde
 
