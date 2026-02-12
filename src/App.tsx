@@ -20,6 +20,7 @@ import Onboarding from "./pages/Onboarding";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
+import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
@@ -37,6 +38,7 @@ const App = () => (
           <AuthProvider>
             <Routes>
               {/* Public routes */}
+              <Route path="/welcome" element={<Welcome />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
