@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2, Package } from "lucide-react";
+import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2 } from "lucide-react";
+import { supabase as sbClient } from "@/integrations/supabase/client";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario" },
@@ -46,6 +47,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Editable fields
   const [firstName, setFirstName] = useState("");
@@ -124,6 +126,32 @@ const Profile = () => {
       await refreshProfile();
     }
     setSaving(false);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { data: sessionData } = await sbClient.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("Sessione scaduta. Effettua di nuovo il login.");
+        return;
+      }
+      const res = await sbClient.functions.invoke("export-user-data");
+      if (res.error) throw res.error;
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ital-lea-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Dati esportati con successo!");
+    } catch (err: any) {
+      toast.error("Errore esportazione: " + (err.message || "Riprova"));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -289,10 +317,14 @@ const Profile = () => {
             <span>La mia bilancia</span>
             <span className="ml-auto text-xs">Prossimamente</span>
           </button>
-          <button className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground" disabled>
-            <Download className="h-4 w-4" />
+          <button
+            className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-foreground"
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Download className="h-4 w-4 text-primary" />}
             <span>Esporta dati</span>
-            <span className="ml-auto text-xs">Prossimamente</span>
+            {exporting && <span className="ml-auto text-xs text-muted-foreground">Esportazione…</span>}
           </button>
           <button className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-destructive" disabled>
             <Trash2 className="h-4 w-4" />
