@@ -67,6 +67,11 @@ const Login = () => {
                 autoComplete="current-password"
               />
             </div>
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                Password dimenticata?
+              </Link>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={submitting}>
