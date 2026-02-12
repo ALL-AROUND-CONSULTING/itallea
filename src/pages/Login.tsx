@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { Separator } from "@/components/ui/separator";
 
 const Login = () => {
   const { user, loading } = useAuth();
@@ -77,6 +79,12 @@ const Login = () => {
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? "Accesso…" : "Accedi"}
             </Button>
+            <div className="flex w-full items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">oppure</span>
+              <Separator className="flex-1" />
+            </div>
+            <GoogleSignInButton />
             <p className="text-center text-sm text-muted-foreground">
               Non hai un account?{" "}
               <Link to="/register" className="font-medium text-primary hover:underline">

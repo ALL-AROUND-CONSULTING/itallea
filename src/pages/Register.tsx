@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { Separator } from "@/components/ui/separator";
 
 const Register = () => {
   const { user, loading } = useAuth();
@@ -95,6 +97,12 @@ const Register = () => {
             <Button type="submit" className="w-full" disabled={submitting || !gdprAccepted}>
               {submitting ? "Registrazione…" : "Registrati"}
             </Button>
+            <div className="flex w-full items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">oppure</span>
+              <Separator className="flex-1" />
+            </div>
+            <GoogleSignInButton />
             <p className="text-center text-sm text-muted-foreground">
               Hai già un account?{" "}
               <Link to="/login" className="font-medium text-primary hover:underline">
