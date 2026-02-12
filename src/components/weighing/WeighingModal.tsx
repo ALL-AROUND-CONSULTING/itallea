@@ -128,7 +128,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
         {/* ── Header ── */}
         {!selectedProduct ? (
           <div
-            className="flex items-center justify-between rounded-t-3xl px-4 pb-3 pt-5"
+            className="flex items-center justify-between rounded-t-3xl px-4 pb-4 pt-5"
             style={{ background: "hsl(var(--brand-blue))" }}
           >
             <button
@@ -138,7 +138,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
               <X className="h-5 w-5 text-white" />
             </button>
             <Select value={mealType} onValueChange={setMealType}>
-              <SelectTrigger className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-base font-bold text-white shadow-none focus:ring-0 [&>svg]:hidden">
+              <SelectTrigger className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-sm font-bold text-white shadow-none focus:ring-0 [&>svg]:hidden">
                 <span className="flex items-center gap-1">
                   <SelectValue />
                   <ChevronDown className="h-4 w-4 text-white/80" />
@@ -164,7 +164,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
         )}
 
         {/* ── Search bar ── */}
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -187,7 +187,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 overflow-x-auto px-4 pt-3 text-xs font-medium">
+        <div className="flex gap-2 overflow-x-auto px-4 pt-4 pb-2 text-xs font-medium">
           {TABS.map((tab, i) => (
             <button
               key={tab}
@@ -210,11 +210,11 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
         </div>
 
         {/* ── Content ── */}
-        <div className="flex-1 overflow-y-auto px-4 pt-2 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
           {!selectedProduct ? (
             <>
               {/* Results label */}
-              <p className="pb-1 text-xs text-muted-foreground">
+              <p className="pb-2 text-xs text-muted-foreground">
                 Risultati della ricerca:
               </p>
 
