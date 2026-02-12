@@ -34,8 +34,15 @@ import {
   ChefHat,
   Wine,
   ArrowLeft,
-  MessageCircle,
+  ScanLine,
   Camera,
+  Warehouse,
+  UtensilsCrossed,
+  Soup,
+  Beef,
+  Salad,
+  Cake,
+  PlusCircle,
 } from "lucide-react";
 
 type UserProduct = {
@@ -63,13 +70,13 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
-type RecipeCategory = { label: string; icon: string };
+type RecipeCategory = { label: string; icon: string; LucideIcon: React.ComponentType<any> };
 const RECIPE_CATEGORIES: RecipeCategory[] = [
-  { label: "Antipasti", icon: "🍢" },
-  { label: "Primi", icon: "🍝" },
-  { label: "Secondi", icon: "🥩" },
-  { label: "Contorni", icon: "🥗" },
-  { label: "Dolci", icon: "🧁" },
+  { label: "Antipasti", icon: "🍢", LucideIcon: UtensilsCrossed },
+  { label: "Primi", icon: "🍝", LucideIcon: Soup },
+  { label: "Secondi", icon: "🥩", LucideIcon: Beef },
+  { label: "Contorni", icon: "🥗", LucideIcon: Salad },
+  { label: "Dolci", icon: "🧁", LucideIcon: Cake },
 ];
 
 type View = "hub" | "recipes" | "products" | "recipe-category";
@@ -351,7 +358,7 @@ const MyProducts = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                   />
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                  <ScanLine className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
             )}
@@ -359,22 +366,38 @@ const MyProducts = () => {
 
           {view === "recipes" ? (
             <div className="px-4 pb-6 pt-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {RECIPE_CATEGORIES.map((cat) => (
                   <Card
                     key={cat.label}
-                    className="flex cursor-pointer flex-col items-center justify-center gap-2 border-0 p-5 shadow-md transition-transform active:scale-95"
+                    className="flex cursor-pointer flex-col items-start gap-3 border-0 p-4 shadow-md transition-transform active:scale-95"
+                    style={{ minHeight: "140px" }}
                     onClick={() => {
                       setSelectedCategory(cat);
                       setView("recipe-category");
                     }}
                   >
-                    <span className="text-4xl">{cat.icon}</span>
-                    <p className="text-center text-sm font-semibold text-foreground">
+                    <p className="text-sm font-bold text-foreground">
                       {cat.label}
                     </p>
+                    <div className="flex w-full flex-1 items-center justify-center">
+                      <cat.LucideIcon className="h-14 w-14" style={{ color: "hsl(var(--brand-blue))" }} />
+                    </div>
                   </Card>
                 ))}
+                {/* Add new category card */}
+                <Card
+                  className="flex cursor-pointer flex-col items-start gap-3 border-2 border-dashed border-muted-foreground/20 bg-muted/30 p-4 shadow-none transition-transform active:scale-95"
+                  style={{ minHeight: "140px" }}
+                  onClick={() => toast.info("Funzionalità in arrivo!")}
+                >
+                  <p className="text-sm font-bold text-muted-foreground">
+                    Aggiungi categoria
+                  </p>
+                  <div className="flex w-full flex-1 items-center justify-center">
+                    <PlusCircle className="h-12 w-12 text-muted-foreground/40" />
+                  </div>
+                </Card>
               </div>
             </div>
           ) : (
@@ -578,19 +601,19 @@ const MyProducts = () => {
         <div className="flex items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
               style={{ background: "hsl(200, 90%, 95%)" }}
             >
-              <Package className="h-6 w-6" style={{ color: "hsl(var(--brand-blue))" }} />
+              <Warehouse className="h-8 w-8" style={{ color: "hsl(var(--brand-blue))" }} />
             </div>
             <h1 className="text-xl font-bold text-foreground">Il mio database</h1>
           </div>
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
             style={{ background: "hsl(var(--brand-blue))" }}
-            aria-label="Assistente"
+            aria-label="Scanner"
           >
-            <MessageCircle className="h-5 w-5 text-white" />
+            <ScanLine className="h-5 w-5 text-white" />
           </button>
         </div>
       </div>
@@ -602,9 +625,9 @@ const MyProducts = () => {
           className="cursor-pointer overflow-hidden border-0 shadow-md transition-transform active:scale-[0.98]"
           onClick={() => setView("recipes")}
         >
-          <div className="px-4 pt-4">
+          <div className="pt-4">
             <span
-              className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+              className="inline-block rounded-r-full py-1.5 pl-4 pr-4 text-sm font-semibold text-white"
               style={{ background: "hsl(var(--brand-blue))" }}
             >
               Il mio ricettario
@@ -622,10 +645,10 @@ const MyProducts = () => {
               </p>
             </div>
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              className="flex h-20 w-20 items-center justify-center rounded-2xl"
               style={{ background: "hsl(200, 90%, 95%)" }}
             >
-              <ChefHat className="h-9 w-9" style={{ color: "hsl(var(--brand-blue))" }} />
+              <ChefHat className="h-12 w-12" style={{ color: "hsl(var(--brand-blue))" }} />
             </div>
           </div>
         </Card>
@@ -635,9 +658,9 @@ const MyProducts = () => {
           className="cursor-pointer overflow-hidden border-0 shadow-md transition-transform active:scale-[0.98]"
           onClick={() => setView("products")}
         >
-          <div className="px-4 pt-4">
+          <div className="pt-4">
             <span
-              className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+              className="inline-block rounded-r-full py-1.5 pl-4 pr-4 text-sm font-semibold text-white"
               style={{ background: "hsl(var(--brand-blue))" }}
             >
               I miei prodotti
@@ -653,10 +676,10 @@ const MyProducts = () => {
               </p>
             </div>
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ background: "hsl(24, 80%, 95%)" }}
+              className="flex h-20 w-20 items-center justify-center rounded-2xl"
+              style={{ background: "hsl(200, 90%, 95%)" }}
             >
-              <Wine className="h-9 w-9 text-accent" />
+              <Wine className="h-12 w-12" style={{ color: "hsl(var(--brand-blue))" }} />
             </div>
           </div>
         </Card>
