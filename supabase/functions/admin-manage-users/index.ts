@@ -24,9 +24,23 @@ Deno.serve(async (req) => {
   if (!isAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
   const url = new URL(req.url);
+  const targetUserId = url.searchParams.get("userId");
 
-  // GET - list users
+  // GET - list users OR get user weighings
   if (req.method === "GET") {
+    // If userId param is provided, return that user's weighings
+    if (targetUserId) {
+      const { data, error } = await adminClient
+        .from("weighings")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .order("logged_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { data: { users }, error } = await adminClient.auth.admin.listUsers({ perPage: 100 });
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
 
