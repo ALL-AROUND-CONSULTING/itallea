@@ -64,25 +64,44 @@ const Scan = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (scannerRef.current && isScannerRunning.current) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current?.clear();
-          scannerRef.current = null;
-          isScannerRunning.current = false;
+  // Force-stop camera helper (used by cleanup & visibility)
+  const forceStopCamera = useCallback(() => {
+    if (scannerRef.current) {
+      const scanner = scannerRef.current;
+      const wasRunning = isScannerRunning.current;
+      isScannerRunning.current = false;
+      scannerRef.current = null;
+
+      if (wasRunning) {
+        scanner.stop().then(() => {
+          try { scanner.clear(); } catch {}
         }).catch(() => {
-          try { scannerRef.current?.clear(); } catch {}
-          scannerRef.current = null;
-          isScannerRunning.current = false;
+          try { scanner.clear(); } catch {}
         });
       } else {
-        try { scannerRef.current?.clear(); } catch {}
-        scannerRef.current = null;
-        isScannerRunning.current = false;
+        try { scanner.clear(); } catch {}
+      }
+    }
+    setScanning(false);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      forceStopCamera();
+    };
+  }, [forceStopCamera]);
+
+  // Stop camera when tab/app goes to background
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        forceStopCamera();
       }
     };
-  }, []);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [forceStopCamera]);
 
   const lookupBarcode = useCallback(async (code: string) => {
     setLoading(true);
