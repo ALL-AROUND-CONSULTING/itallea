@@ -1,90 +1,62 @@
 
 
-# Riprogettazione Onboarding secondo Mockup Figma
+# Aggiunta Scanner QR per Pairing Bilancia
 
-## Differenze tra stato attuale e mockup
+## Situazione Attuale
 
-| Elemento | Attuale | Mockup |
-|---|---|---|
-| Numero step | 4 step con progress bar | 2 step ("Step 1/2", "Step 2/2") |
-| Schermata benvenuto | Assente | Presente dopo verifica email con logo, confetti e "Iniziamo!" |
-| Layout | Card con CardHeader/CardContent | Sfondo bianco pulito, input minimal |
-| Header | Progress bar + emoji titolo | Freccia indietro "<" + "Le tue informazioni" + "Step X/2" |
-| Step 1 campi | Nome, Cognome, Data nascita, Sesso | Nome, Cognome, Email (readonly), Telefono (+39), Data nascita, Peso |
-| Step 2 campi | Peso, Altezza, Peso obiettivo | Avatar, Altezza, Obiettivo, Sesso, Attivita' fisica |
-| Input style | Input standard con Label sopra | Input con placeholder inline, chevron ">" per select |
-| Telefono | Step 4 opzionale, senza prefisso | Step 1, con prefisso "+39" fisso |
-| Avatar | Step 4 opzionale | Step 2, cerchio con icona luna/camera |
-| Pulsante | "Avanti" standard | Pill blu piena "Avanti" |
+- Il banner "Aggiungi dispositivo" in Home naviga a `/settings` dove c'e' solo un campo di testo per inserire il codice manualmente
+- Il documento tecnico specifica che il pairing deve avvenire "tramite la scansione del QR code" (sezione 3.1 e pagina 35)
+- Lo scanner barcode esiste gia' in `src/pages/Scan.tsx` con tutta la logica Html5Qrcode
 
 ## Piano di Implementazione
 
-### 1. Nuova schermata "Post-Verifica Benvenuto"
+### 1. Creare pagina dedicata per il pairing: `src/pages/PairDevice.tsx`
 
-Creare una pagina intermedia che appare dopo la verifica email e prima dell'onboarding. Contiene:
-- Testo "Benvenuto/a nella tua nuova app:" centrato in alto
-- Logo Ital Lea grande al centro
-- Testo "Completa la registrazione per poterti offrire i nostri migliori servizi"
-- Pulsante blu "Iniziamo!" che naviga a `/onboarding`
-- Decorazioni confetti leggere sullo sfondo
+Una schermata fullscreen simile a `Scan.tsx` ma ottimizzata per QR code:
+- Header con freccia indietro e titolo "Collega la tua bilancia"
+- Area fotocamera fullscreen con brackets di inquadratura (quadrati, non rettangolari come per i barcode)
+- Pulsante "Inserimento manuale" in basso per chi non riesce a scansionare
+- Overlay manuale con campo di testo per il codice dispositivo
+- Dopo la scansione del QR: chiama l'endpoint `pair-device` con il `hardware_device_id` letto dal QR
+- In caso di successo: mostra toast di conferma e naviga alla home
+- In caso di errore (409 = gia' associato ad altro utente): mostra messaggio appropriato
 
-Questa schermata verra' mostrata dopo la verifica OTP: aggiornare `VerifyEmail.tsx` per navigare a `/post-verify` invece di `/`.
+La logica della fotocamera riutilizzera' lo stesso pattern di `Scan.tsx` (ref `isScannerRunning`, cleanup, start/stop).
 
-### 2. Ristrutturazione Onboarding in 2 Step
+### 2. Aggiornare routing in `src/App.tsx`
 
-Riprogettare `Onboarding.tsx` da 4 step a 2:
+- Aggiungere la route `/pair-device` protetta (richiede autenticazione)
+- Importare il nuovo componente `PairDevice`
 
-**Step 1/2 - "Le tue informazioni":**
-- Header: freccia indietro + titolo "Le tue informazioni" + sottotitolo "Step 1/2"
-- Campi (stile input minimal con placeholder):
-  - "Il tuo nome *"
-  - "Il tuo cognome *"
-  - "La tua email *" (precompilata, readonly dal contesto auth)
-  - Telefono con prefisso "+39" fisso a sinistra + input numero
-  - "La tua data di nascita" 
-  - "Il tuo peso *"
-- Pulsante "Avanti" blu pill in basso
+### 3. Aggiornare il banner Home in `src/components/dashboard/DeviceBanner.tsx`
 
-**Step 2/2 - "Le tue informazioni":**
-- Header: freccia indietro + titolo "Le tue informazioni" + sottotitolo "Step 2/2"
-- Avatar: cerchio grande con icona + "Aggiungi un'immagine del profilo"
-- Campi con chevron ">" a destra per i select:
-  - "La tua altezza *"
-  - "Il tuo obiettivo" (peso target, con chevron)
-  - "Sesso" (con chevron)
-  - "Fai Attivita' fisica?" (con chevron)
-- Pulsante "Avanti" blu pill (completa l'onboarding)
+- Cambiare la navigazione del banner "Aggiungi dispositivo": da `navigate("/settings")` a `navigate("/pair-device")`
+- Il badge "Il mio dispositivo" continua a navigare a `/settings` per gestione/disconnessione
 
-### 3. Stile Input
+### 4. Aggiornare pagina Impostazioni in `src/pages/Settings.tsx`
 
-Rimuovere il wrapper Card. Usare sfondo bianco pulito con:
-- Input a larghezza piena con bordo sottile chiaro
-- Placeholder inline (non label sopra)
-- Campi select mostrati come riga con testo a sinistra e chevron ">" a destra
-- Bordi arrotondati (rounded-xl)
-
-### 4. Routing
-
-- Aggiungere route `/post-verify` in `App.tsx`
-- `VerifyEmail.tsx`: dopo verifica OTP riuscita, navigare a `/post-verify`
-- `post-verify`: cliccando "Iniziamo!" naviga a `/onboarding`
-- L'onboarding resta protetto (richiede auth)
+- Aggiungere un pulsante "Collega bilancia" che naviga a `/pair-device` (quando non c'e' un dispositivo collegato)
+- Mantenere anche l'input manuale come opzione alternativa
 
 ---
 
 ## Sezione Tecnica
 
 ### File da creare:
-- `src/pages/PostVerify.tsx` - Schermata benvenuto post-verifica
+- `src/pages/PairDevice.tsx` — Schermata scanner QR con:
+  - Html5Qrcode configurato per QR (non solo barcode)
+  - `qrbox` quadrato (220x220) per QR code
+  - Chiamata a `pair-device` POST con `{ hardware_device_id: decodedText }`
+  - Fallback inserimento manuale del codice
+  - Gestione stati: scanning, loading, success, error (409/500)
 
 ### File da modificare:
-- `src/pages/Onboarding.tsx` - Ristrutturazione completa da 4 a 2 step con nuovo layout
-- `src/pages/VerifyEmail.tsx` - Cambiare navigazione post-verifica da `/` a `/post-verify`
-- `src/App.tsx` - Aggiungere route `/post-verify`
+- `src/App.tsx` — Aggiungere route `/pair-device`
+- `src/components/dashboard/DeviceBanner.tsx` — Banner "Aggiungi dispositivo" naviga a `/pair-device`
+- `src/pages/Settings.tsx` — Pulsante "Collega bilancia" naviga a `/pair-device` quando nessun dispositivo presente
 
 ### Logica conservata:
-- Tutto il calcolo TDEE/macros resta invariato
-- Upload avatar resta invariato
-- Salvataggio profilo su database resta invariato
-- La validazione dei campi obbligatori resta attiva
+- L'endpoint `pair-device` resta invariato (gia' supporta il pairing)
+- La disconnessione resta in Impostazioni
+- Il banner Home mostra il dispositivo connesso se presente
 
