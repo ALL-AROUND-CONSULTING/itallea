@@ -41,6 +41,7 @@ const Scan = () => {
   const [manualCode, setManualCode] = useState("");
   const [showManual, setShowManual] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isScannerRunning = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(false);
@@ -65,10 +66,20 @@ const Scan = () => {
 
   useEffect(() => {
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-        scannerRef.current.clear();
+      if (scannerRef.current && isScannerRunning.current) {
+        scannerRef.current.stop().then(() => {
+          scannerRef.current?.clear();
+          scannerRef.current = null;
+          isScannerRunning.current = false;
+        }).catch(() => {
+          try { scannerRef.current?.clear(); } catch {}
+          scannerRef.current = null;
+          isScannerRunning.current = false;
+        });
+      } else {
+        try { scannerRef.current?.clear(); } catch {}
         scannerRef.current = null;
+        isScannerRunning.current = false;
       }
     };
   }, []);
@@ -122,7 +133,7 @@ const Scan = () => {
   }, []);
 
   const startScanner = useCallback(async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || isScannerRunning.current) return;
 
     try {
       const scanner = new Html5Qrcode("barcode-reader");
@@ -135,8 +146,14 @@ const Scan = () => {
           qrbox: { width: 280, height: 160 },
         },
         (decodedText) => {
+          isScannerRunning.current = false;
           scanner.stop().then(() => {
             scanner.clear();
+            scannerRef.current = null;
+            setScanning(false);
+            lookupBarcode(decodedText);
+          }).catch(() => {
+            try { scanner.clear(); } catch {}
             scannerRef.current = null;
             setScanning(false);
             lookupBarcode(decodedText);
@@ -145,6 +162,7 @@ const Scan = () => {
         () => {}
       );
 
+      isScannerRunning.current = true;
       setScanning(true);
     } catch {
       toast.error("Impossibile accedere alla fotocamera");
@@ -152,9 +170,17 @@ const Scan = () => {
   }, [lookupBarcode]);
 
   const stopScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-      scannerRef.current.clear();
+    if (scannerRef.current && isScannerRunning.current) {
+      isScannerRunning.current = false;
+      scannerRef.current.stop().then(() => {
+        try { scannerRef.current?.clear(); } catch {}
+        scannerRef.current = null;
+      }).catch(() => {
+        try { scannerRef.current?.clear(); } catch {}
+        scannerRef.current = null;
+      });
+    } else {
+      try { scannerRef.current?.clear(); } catch {}
       scannerRef.current = null;
     }
     setScanning(false);
