@@ -35,6 +35,7 @@ import {
   Wine,
   ArrowLeft,
   MessageCircle,
+  Camera,
 } from "lucide-react";
 
 type UserProduct = {
@@ -86,6 +87,7 @@ const MyProducts = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -189,6 +191,54 @@ const MyProducts = () => {
       fetchProducts();
     }
     setDeleteId(null);
+  };
+
+  const handleOcrScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrLoading(true);
+
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await supabase.functions.invoke("ocr-nutrition-label", {
+        method: "POST",
+        body: { image_base64: base64 },
+      });
+
+      if (res.error) throw res.error;
+      const n = res.data?.nutrition;
+      if (n) {
+        setForm({
+          name: n.name || form.name,
+          brand: n.brand || form.brand,
+          barcode: form.barcode,
+          kcal_per_100g: n.kcal_per_100g?.toString() || "0",
+          protein_per_100g: n.protein_per_100g?.toString() || "0",
+          carbs_per_100g: n.carbs_per_100g?.toString() || "0",
+          fat_per_100g: n.fat_per_100g?.toString() || "0",
+          fiber_per_100g: n.fiber_per_100g?.toString() || "0",
+          salt_per_100g: n.salt_per_100g?.toString() || "0",
+        });
+        toast.success("Valori estratti dall'etichetta!");
+      } else {
+        toast.error("Impossibile leggere l'etichetta");
+      }
+    } catch (err: any) {
+      toast.error("Errore OCR: " + (err.message || "Riprova"));
+    } finally {
+      setOcrLoading(false);
+      // Reset the input so the same file can be re-selected
+      e.target.value = "";
+    }
   };
 
   const setField = (key: string, value: string) =>
@@ -388,6 +438,32 @@ const MyProducts = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
+              {/* OCR button */}
+              {!editingId && (
+                <div>
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10">
+                    {ocrLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Analisi in corso…
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4" />
+                        📸 Scansiona etichetta nutrizionale
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleOcrScan}
+                      disabled={ocrLoading}
+                    />
+                  </label>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs">Nome *</Label>
                 <Input

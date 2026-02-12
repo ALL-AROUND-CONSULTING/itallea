@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.submit-nutrition-correction]
 verify_jwt = false
+
+[functions.ocr-nutrition-label]
+verify_jwt = false
+
+[functions.manage-push-token]
+verify_jwt = false
