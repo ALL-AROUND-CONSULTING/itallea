@@ -24,12 +24,12 @@ const Charts = () => {
   const { data: waterData, isLoading: waterLoading } = useWaterHistory(range);
   const { history, isLoading: weightLoading } = useWeightLog();
 
-  const targetKcal = (profile as any)?.target_kcal ? Number((profile as any).target_kcal) : null;
-  const targetProtein = (profile as any)?.target_protein ? Number((profile as any).target_protein) : null;
-  const targetCarbs = (profile as any)?.target_carbs ? Number((profile as any).target_carbs) : null;
-  const targetFat = (profile as any)?.target_fat ? Number((profile as any).target_fat) : null;
-  const targetWeight = (profile as any)?.target_weight ? Number((profile as any).target_weight) : null;
-  const waterGoal = (profile as any)?.water_goal_ml ? Number((profile as any).water_goal_ml) : 2000;
+  const targetKcal = profile?.target_kcal ? Number(profile.target_kcal) : null;
+  const targetProtein = profile?.target_protein ? Number(profile.target_protein) : null;
+  const targetCarbs = profile?.target_carbs ? Number(profile.target_carbs) : null;
+  const targetFat = profile?.target_fat ? Number(profile.target_fat) : null;
+  const targetWeight = profile?.target_weight ? Number(profile.target_weight) : null;
+  const waterGoal = profile?.water_goal_ml ? Number(profile.water_goal_ml) : 2000;
 
   return (
     <>

@@ -218,11 +218,11 @@ const Diary = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { ml: 250, label: "250ml", icon: "🥛" },
-                  { ml: 500, label: "500ml", icon: "🧴" },
-                  { ml: 700, label: "700ml", icon: "🫙" },
-                  { ml: 1000, label: "1L", icon: "🍶" },
-                  { ml: 1500, label: "1.5L", icon: "💧" },
+                  { ml: 250, label: "250ml", icon: "💧" },
+                  { ml: 500, label: "500ml", icon: "🥤" },
+                  { ml: 700, label: "700ml", icon: "💧" },
+                  { ml: 1000, label: "1L", icon: "🫗" },
+                  { ml: 1500, label: "1.5L", icon: "💦" },
                 ].map((preset) => (
                   <button
                     key={preset.ml}
