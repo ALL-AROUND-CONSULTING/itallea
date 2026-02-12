@@ -1,6 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
-import { ActionBar } from "./ActionBar";
 import { motion, AnimatePresence } from "framer-motion";
 
 const pageVariants = {
@@ -11,7 +10,6 @@ const pageVariants = {
 
 export function AppLayout() {
   const location = useLocation();
-  const isHome = location.pathname === "/";
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
@@ -29,7 +27,6 @@ export function AppLayout() {
           </motion.div>
         </AnimatePresence>
       </main>
-      {!isHome && <ActionBar />}
       <BottomNav />
     </div>
   );

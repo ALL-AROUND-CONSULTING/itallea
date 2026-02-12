@@ -1,16 +1,17 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Bluetooth } from "lucide-react";
+import { ScanLine } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 export function HomeHeader() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const firstName = profile?.first_name || "Utente";
   const avatarUrl = profile?.avatar_url;
   const initials = (firstName[0] ?? "U").toUpperCase();
 
   return (
     <div className="relative">
-      {/* Curved gradient background */}
       <div
         className="relative overflow-hidden pb-8"
         style={{
@@ -64,11 +65,12 @@ export function HomeHeader() {
           </div>
           <motion.button
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 shadow-sm"
-            aria-label="Dispositivo"
+            aria-label="Scanner"
+            onClick={() => navigate("/scan")}
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.08 }}
           >
-            <Bluetooth className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
+            <ScanLine className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
           </motion.button>
         </motion.div>
       </div>
