@@ -31,19 +31,21 @@ import {
   Loader2,
   Search,
   Package,
-  ChefHat,
-  Wine,
   ArrowLeft,
   ScanLine,
   Camera,
-  Warehouse,
-  UtensilsCrossed,
-  Soup,
-  Beef,
-  Salad,
-  Cake,
   PlusCircle,
 } from "lucide-react";
+import {
+  WarehouseIllustration,
+  RecipeBookIllustration,
+  GroceryIllustration,
+  AntipastiIllustration,
+  PrimiIllustration,
+  SecondiIllustration,
+  ContorniIllustration,
+  DolciIllustration,
+} from "@/components/illustrations/DatabaseIllustrations";
 
 type UserProduct = {
   id: string;
@@ -70,13 +72,13 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
-type RecipeCategory = { label: string; icon: string; LucideIcon: React.ComponentType<any> };
+type RecipeCategory = { label: string; icon: string; Illustration: React.ComponentType<{ className?: string; style?: React.CSSProperties }> };
 const RECIPE_CATEGORIES: RecipeCategory[] = [
-  { label: "Antipasti", icon: "🍢", LucideIcon: UtensilsCrossed },
-  { label: "Primi", icon: "🍝", LucideIcon: Soup },
-  { label: "Secondi", icon: "🥩", LucideIcon: Beef },
-  { label: "Contorni", icon: "🥗", LucideIcon: Salad },
-  { label: "Dolci", icon: "🧁", LucideIcon: Cake },
+  { label: "Antipasti", icon: "🍢", Illustration: AntipastiIllustration },
+  { label: "Primi", icon: "🍝", Illustration: PrimiIllustration },
+  { label: "Secondi", icon: "🥩", Illustration: SecondiIllustration },
+  { label: "Contorni", icon: "🥗", Illustration: ContorniIllustration },
+  { label: "Dolci", icon: "🧁", Illustration: DolciIllustration },
 ];
 
 type View = "hub" | "recipes" | "products" | "recipe-category";
@@ -381,7 +383,7 @@ const MyProducts = () => {
                       {cat.label}
                     </p>
                     <div className="flex w-full flex-1 items-center justify-center">
-                      <cat.LucideIcon className="h-14 w-14" style={{ color: "hsl(var(--brand-blue))" }} />
+                      <cat.Illustration className="h-16 w-16" />
                     </div>
                   </Card>
                 ))}
@@ -600,12 +602,7 @@ const MyProducts = () => {
         {/* Title row */}
         <div className="flex items-center justify-between px-5">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{ background: "hsl(200, 90%, 95%)" }}
-            >
-              <Warehouse className="h-8 w-8" style={{ color: "hsl(var(--brand-blue))" }} />
-            </div>
+            <WarehouseIllustration className="h-16 w-16" />
             <h1 className="text-xl font-bold text-foreground">Il mio database</h1>
           </div>
           <button
@@ -644,12 +641,7 @@ const MyProducts = () => {
                 con facilità
               </p>
             </div>
-            <div
-              className="flex h-20 w-20 items-center justify-center rounded-2xl"
-              style={{ background: "hsl(200, 90%, 95%)" }}
-            >
-              <ChefHat className="h-12 w-12" style={{ color: "hsl(var(--brand-blue))" }} />
-            </div>
+            <RecipeBookIllustration className="h-20 w-20" />
           </div>
         </Card>
 
@@ -675,12 +667,7 @@ const MyProducts = () => {
                 e aggiungi nuovi alimenti
               </p>
             </div>
-            <div
-              className="flex h-20 w-20 items-center justify-center rounded-2xl"
-              style={{ background: "hsl(200, 90%, 95%)" }}
-            >
-              <Wine className="h-12 w-12" style={{ color: "hsl(var(--brand-blue))" }} />
-            </div>
+            <GroceryIllustration className="h-20 w-20" />
           </div>
         </Card>
       </div>
