@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      devices: {
+        Row: {
+          hardware_device_id: string
+          id: string
+          is_active: boolean
+          paired_at: string
+          serial_number: string | null
+          user_id: string
+        }
+        Insert: {
+          hardware_device_id: string
+          id?: string
+          is_active?: boolean
+          paired_at?: string
+          serial_number?: string | null
+          user_id: string
+        }
+        Update: {
+          hardware_device_id?: string
+          id?: string
+          is_active?: boolean
+          paired_at?: string
+          serial_number?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           id: string

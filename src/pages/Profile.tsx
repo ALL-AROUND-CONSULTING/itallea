@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield } from "lucide-react";
+import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield, QrCode, Unplug } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ACTIVITY_OPTIONS = [
@@ -52,7 +52,9 @@ const Profile = () => {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
+  const [pairedDevice, setPairedDevice] = useState<any>(null);
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairing, setPairing] = useState(false);
   // Editable fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -87,6 +89,52 @@ const Profile = () => {
         setLoading(false);
       });
   }, [user]);
+
+  // Load paired device
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("devices")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("paired_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setPairedDevice(data));
+  }, [user]);
+
+  const handlePairDevice = async () => {
+    if (!pairingCode.trim()) { toast.error("Inserisci il codice dispositivo"); return; }
+    setPairing(true);
+    const res = await supabase.functions.invoke("pair-device", {
+      method: "POST",
+      body: { hardware_device_id: pairingCode.trim() },
+    });
+    if (res.error) {
+      toast.error("Errore pairing: " + (res.error.message || "Riprova"));
+    } else {
+      toast.success(res.data.message || "Dispositivo collegato!");
+      setPairingCode("");
+      const { data } = await supabase.from("devices").select("*").eq("user_id", user!.id).eq("is_active", true).order("paired_at", { ascending: false }).limit(1).maybeSingle();
+      setPairedDevice(data);
+    }
+    setPairing(false);
+  };
+
+  const handleUnpairDevice = async () => {
+    if (!pairedDevice) return;
+    const res = await supabase.functions.invoke("pair-device", {
+      method: "DELETE",
+      body: { deviceId: pairedDevice.id },
+    });
+    if (res.error) {
+      toast.error("Errore disconnessione");
+    } else {
+      toast.success("Dispositivo scollegato");
+      setPairedDevice(null);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -344,11 +392,41 @@ const Profile = () => {
             <span>I miei prodotti</span>
             <span className="ml-auto text-xs text-muted-foreground">→</span>
           </button>
-          <button className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-muted-foreground" disabled>
-            <Scale className="h-4 w-4" />
-            <span>La mia bilancia</span>
-            <span className="ml-auto text-xs">Prossimamente</span>
-          </button>
+          {/* Device pairing */}
+          {pairedDevice ? (
+            <div className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-card p-3">
+              <Scale className="h-4 w-4 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Bilancia collegata</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {pairedDevice.hardware_device_id}
+                  {pairedDevice.serial_number && ` · S/N ${pairedDevice.serial_number}`}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0 text-destructive h-8 w-8" onClick={handleUnpairDevice}>
+                <Unplug className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-card p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Scale className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">La mia bilancia</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Codice dispositivo o QR"
+                  value={pairingCode}
+                  onChange={(e) => setPairingCode(e.target.value)}
+                  className="text-sm h-8"
+                />
+                <Button size="sm" onClick={handlePairDevice} disabled={pairing} className="shrink-0 h-8">
+                  {pairing ? <Loader2 className="h-3 w-3 animate-spin" /> : <QrCode className="h-3 w-3 mr-1" />}
+                  Collega
+                </Button>
+              </div>
+            </div>
+          )}
           <button
             className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-foreground"
             onClick={handleExport}
