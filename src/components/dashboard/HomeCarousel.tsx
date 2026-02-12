@@ -33,7 +33,7 @@ export function HomeCarousel({ children }: HomeCarouselProps) {
         </div>
       </div>
       {/* Dots */}
-      <div className="mt-3 flex items-center justify-center gap-1.5">
+      <div className="mt-2 flex items-center justify-center gap-1.5">
         {children.map((_, i) => (
           <button
             key={i}

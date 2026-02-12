@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWeightLog } from "@/hooks/useWeightLog";
 import { Plus } from "lucide-react";
@@ -32,8 +32,8 @@ export function WeightSlide() {
     return { min: mn - pad, max: mx + pad };
   };
   const { min, max } = sparkMinMax();
-  const sparkW = 200;
-  const sparkH = 50;
+  const sparkW = 100;
+  const sparkH = 40;
   const points = sparkData
     .map((d, i) => {
       const x = (i / Math.max(sparkData.length - 1, 1)) * sparkW;
@@ -59,14 +59,17 @@ export function WeightSlide() {
   };
 
   return (
-    <Card className="border-0 shadow-md p-4">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-lg font-bold text-foreground">Peso</h3>
-        <span className="text-xs font-semibold" style={{ color: "hsl(var(--brand-blue))" }}>Oggi</span>
-      </div>
+    <Card className="border-0 shadow-md px-4 py-3">
+      {/* "Oggi" centered top */}
+      <p className="text-center text-xs font-semibold mb-1" style={{ color: "hsl(var(--brand-blue))" }}>
+        Oggi
+      </p>
 
-      {/* Stats row */}
-      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 mb-3">
+      {/* Title */}
+      <h3 className="text-base font-bold text-foreground mb-2">Peso</h3>
+
+      {/* Stats row - no background */}
+      <div className="flex items-center justify-between mb-2">
         <div className="text-center">
           <p className="text-[10px] text-muted-foreground">Iniziale</p>
           <p className="text-xs font-bold text-foreground">{initialWeight?.toFixed(2) ?? "—"} kg</p>
@@ -93,17 +96,15 @@ export function WeightSlide() {
         </div>
       </div>
 
-      {/* Big weight */}
-      <div className="text-center mb-2">
-        <span className="text-4xl font-bold text-foreground">
-          {currentWeight?.toFixed(2) ?? "—"}
-        </span>
-        <span className="text-base text-muted-foreground ml-1">kg</span>
-      </div>
-
-      {/* Sparkline */}
-      {sparkData.length >= 2 && (
-        <div className="flex justify-center mb-3">
+      {/* Big weight left + sparkline right */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-bold text-foreground">
+            {currentWeight?.toFixed(2) ?? "—"}
+          </span>
+          <span className="text-sm text-muted-foreground">kg</span>
+        </div>
+        {sparkData.length >= 2 && (
           <svg width={sparkW} height={sparkH} viewBox={`0 0 ${sparkW} ${sparkH}`}>
             <polyline
               points={points}
@@ -114,8 +115,8 @@ export function WeightSlide() {
               strokeLinecap="round"
             />
           </svg>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Add weight */}
       {showInput ? (
@@ -129,14 +130,14 @@ export function WeightSlide() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleLog()}
-            className="text-center"
+            className="text-center h-8 text-sm"
             autoFocus
           />
           <Button
             size="sm"
             onClick={handleLog}
             disabled={logWeight.isPending || !input}
-            className="rounded-full"
+            className="rounded-full h-8 px-3"
             style={{ background: "hsl(var(--brand-blue))" }}
           >
             Salva
@@ -145,10 +146,15 @@ export function WeightSlide() {
       ) : (
         <button
           onClick={() => setShowInput(true)}
-          className="mx-auto flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white"
-          style={{ background: "hsl(var(--brand-blue))" }}
+          className="mx-auto flex items-center gap-2 text-sm font-semibold"
+          style={{ color: "hsl(var(--brand-blue))" }}
         >
-          <Plus className="h-4 w-4" />
+          <div
+            className="flex h-6 w-6 items-center justify-center rounded-full"
+            style={{ background: "hsl(var(--brand-blue))" }}
+          >
+            <Plus className="h-3.5 w-3.5 text-white" />
+          </div>
           Inserisci peso
         </button>
       )}
