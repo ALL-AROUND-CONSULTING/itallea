@@ -20,3 +20,18 @@ verify_jwt = false
 
 [functions.admin-manage-products]
 verify_jwt = false
+
+[functions.pair-device]
+verify_jwt = false
+
+[functions.device-lookup-barcode]
+verify_jwt = false
+
+[functions.device-send-weighing]
+verify_jwt = false
+
+[functions.device-get-recipe]
+verify_jwt = false
+
+[functions.submit-nutrition-correction]
+verify_jwt = false
