@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Home, Database, Plus, Settings, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { WeighingModal } from "@/components/weighing/WeighingModal";
-
+import { QuickActionSheet } from "@/components/layout/QuickActionSheet";
 const navItems = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/my-products", icon: Database, label: "Database" },
@@ -14,7 +13,7 @@ const navItems = [
 
 export function BottomNav() {
   const location = useLocation();
-  const [weighingOpen, setWeighingOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <>
@@ -25,7 +24,7 @@ export function BottomNav() {
               return (
                 <button
                   key="fab"
-                  onClick={() => setWeighingOpen(true)}
+                  onClick={() => setSheetOpen(true)}
                   className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
                   style={{ background: "hsl(var(--brand-blue))" }}
                   aria-label="Nuova pesata"
@@ -63,7 +62,7 @@ export function BottomNav() {
           })}
         </div>
       </nav>
-      <WeighingModal open={weighingOpen} onOpenChange={setWeighingOpen} />
+      <QuickActionSheet open={sheetOpen} onOpenChange={setSheetOpen} />
     </>
   );
 }
