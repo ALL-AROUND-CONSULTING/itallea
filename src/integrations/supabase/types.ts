@@ -128,6 +128,103 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_ingredients: {
+        Row: {
+          carbs: number
+          created_at: string
+          fat: number
+          grams: number
+          id: string
+          kcal: number
+          product_id: string | null
+          product_name: string
+          protein: number
+          recipe_id: string
+          user_product_id: string | null
+        }
+        Insert: {
+          carbs?: number
+          created_at?: string
+          fat?: number
+          grams?: number
+          id?: string
+          kcal?: number
+          product_id?: string | null
+          product_name: string
+          protein?: number
+          recipe_id: string
+          user_product_id?: string | null
+        }
+        Update: {
+          carbs?: number
+          created_at?: string
+          fat?: number
+          grams?: number
+          id?: string
+          kcal?: number
+          product_id?: string | null
+          product_name?: string
+          protein?: number
+          recipe_id?: string
+          user_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          servings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          servings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          servings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_products: {
         Row: {
           barcode: string | null
