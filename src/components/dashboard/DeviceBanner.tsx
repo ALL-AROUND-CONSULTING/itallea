@@ -70,7 +70,7 @@ export function DeviceBanner() {
 
   if (!device) {
     return (
-      <div className="mx-4 mb-0">
+      <div className="mx-4 mb-0 mt-0">
         {/* Badge gradient */}
         <button
           onClick={() => navigate("/pair-device")}
