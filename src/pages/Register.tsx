@@ -2,26 +2,26 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AuthLogo } from "@/components/auth/AuthLogo";
+import { AuthInput } from "@/components/auth/AuthInput";
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
+import { Mail, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { Separator } from "@/components/ui/separator";
 
 const Register = () => {
   const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [gdprAccepted, setGdprAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[hsl(var(--brand-blue))] border-t-transparent" />
       </div>
     );
   }
@@ -32,6 +32,10 @@ const Register = () => {
     e.preventDefault();
     if (!gdprAccepted) {
       toast.error("Devi accettare l'informativa sulla privacy per continuare.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Le password non corrispondono.");
       return;
     }
     setSubmitting(true);
@@ -49,69 +53,77 @@ const Register = () => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">🍽️ Crea Account</CardTitle>
-          <CardDescription>Inizia a monitorare la tua nutrizione</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleRegister}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@esempio.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Minimo 6 caratteri"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
-            </div>
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="gdpr"
-                checked={gdprAccepted}
-                onCheckedChange={(checked) => setGdprAccepted(checked === true)}
-              />
-              <Label htmlFor="gdpr" className="text-xs leading-relaxed text-muted-foreground">
-                Accetto l'informativa sulla privacy e il trattamento dei miei dati personali ai sensi del GDPR.
-              </Label>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={submitting || !gdprAccepted}>
-              {submitting ? "Registrazione…" : "Registrati"}
-            </Button>
-            <div className="flex w-full items-center gap-3">
-              <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">oppure</span>
-              <Separator className="flex-1" />
-            </div>
-            <GoogleSignInButton />
-            <p className="text-center text-sm text-muted-foreground">
-              Hai già un account?{" "}
-              <Link to="/login" className="font-medium text-primary hover:underline">
-                Accedi
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+    <div className="flex min-h-[100dvh] flex-col bg-white px-6 py-12">
+      {/* Logo */}
+      <div className="mb-10 mt-8">
+        <AuthLogo size="lg" />
+      </div>
+
+      <form onSubmit={handleRegister} className="flex flex-1 flex-col">
+        <div className="space-y-4">
+          <AuthInput
+            id="email"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            icon={Mail}
+            required
+            autoComplete="email"
+          />
+          <AuthInput
+            id="password"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            icon={Lock}
+            required
+            autoComplete="new-password"
+            minLength={6}
+          />
+          <AuthInput
+            id="confirm-password"
+            type="password"
+            placeholder="Conferma la Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            icon={Lock}
+            required
+            autoComplete="new-password"
+            minLength={6}
+          />
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="gdpr"
+              checked={gdprAccepted}
+              onCheckedChange={(checked) => setGdprAccepted(checked === true)}
+            />
+            <Label htmlFor="gdpr" className="text-xs leading-relaxed text-muted-foreground">
+              Accetto l'informativa sulla privacy e il trattamento dei miei dati personali ai sensi del GDPR.
+            </Label>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-5">
+          <button
+            type="submit"
+            disabled={submitting || !gdprAccepted}
+            className="flex h-12 w-full items-center justify-center rounded-full bg-[hsl(var(--brand-blue))] text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--brand-dark-blue))] disabled:opacity-50"
+          >
+            {submitting ? "Registrazione…" : "Registrati"}
+          </button>
+
+          <SocialLoginButtons />
+
+          <p className="text-center text-sm text-muted-foreground">
+            Hai già un account?{" "}
+            <Link to="/login" className="font-medium text-[hsl(var(--brand-blue))] hover:underline">
+              Accedi
+            </Link>
+          </p>
+        </div>
+      </form>
     </div>
   );
 };

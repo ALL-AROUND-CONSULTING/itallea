@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthLogo } from "@/components/auth/AuthLogo";
+import { AuthInput } from "@/components/auth/AuthInput";
+import { Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const ResetPassword = () => {
@@ -15,13 +14,9 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event from the auth redirect
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
+      if (event === "PASSWORD_RECOVERY") setReady(true);
     });
-    // Also check if we already have a session (user clicked link)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setReady(true);
     });
@@ -51,66 +46,63 @@ const ResetPassword = () => {
 
   if (!ready) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">🔑 Reset Password</CardTitle>
-            <CardDescription>
-              Caricamento in corso… Se non succede nulla, il link potrebbe essere scaduto.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="justify-center">
-            <Button variant="outline" onClick={() => navigate("/forgot-password")}>
-              Richiedi un nuovo link
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="flex min-h-[100dvh] flex-col items-center bg-white px-6 py-12">
+        <div className="mb-10 mt-8">
+          <AuthLogo size="lg" />
+        </div>
+        <h1 className="mb-2 text-xl font-bold text-foreground">Reset Password</h1>
+        <p className="mb-6 text-center text-sm text-muted-foreground">
+          Caricamento in corso… Se non succede nulla, il link potrebbe essere scaduto.
+        </p>
+        <button
+          onClick={() => navigate("/forgot-password")}
+          className="flex h-12 w-full max-w-xs items-center justify-center rounded-full border border-border text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          Richiedi un nuovo link
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">🔑 Nuova Password</CardTitle>
-          <CardDescription>Scegli la tua nuova password</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">Nuova password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm">Conferma password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                placeholder="••••••••"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Aggiornamento…" : "Aggiorna password"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+    <div className="flex min-h-[100dvh] flex-col bg-white px-6 py-12">
+      <div className="mb-10 mt-8">
+        <AuthLogo size="lg" />
+      </div>
+
+      <h1 className="mb-2 text-center text-xl font-bold text-foreground">Nuova Password</h1>
+      <p className="mb-8 text-center text-sm text-muted-foreground">Scegli la tua nuova password</p>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <AuthInput
+          id="password"
+          type="password"
+          placeholder="Nuova password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          icon={Lock}
+          required
+          minLength={6}
+          autoFocus
+        />
+        <AuthInput
+          id="confirm"
+          type="password"
+          placeholder="Conferma password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          icon={Lock}
+          required
+          minLength={6}
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[hsl(var(--brand-blue))] text-sm font-semibold text-white transition-colors hover:bg-[hsl(var(--brand-dark-blue))] disabled:opacity-50"
+        >
+          {submitting ? "Aggiornamento…" : "Aggiorna password"}
+        </button>
+      </form>
     </div>
   );
 };
