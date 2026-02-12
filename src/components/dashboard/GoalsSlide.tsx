@@ -18,7 +18,7 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
   const { totals, targets, percentages } = data;
 
   return (
-    <Card className="mx-2 h-full">
+    <Card className="h-full">
       <CardHeader className="pb-2 pt-4">
         <CardTitle className="text-center text-sm font-semibold">🎯 Obiettivi Giornalieri</CardTitle>
       </CardHeader>

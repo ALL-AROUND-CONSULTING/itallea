@@ -2,6 +2,8 @@ import { useDailyNutrition } from "@/hooks/useDailyNutrition";
 import { HomeHeader } from "@/components/dashboard/HomeHeader";
 import { DeviceBanner } from "@/components/dashboard/DeviceBanner";
 import { CaloriesDonutCard } from "@/components/dashboard/CaloriesDonutCard";
+import { GoalsSlide } from "@/components/dashboard/GoalsSlide";
+import { WeightSlide } from "@/components/dashboard/WeightSlide";
 import { QuickCards } from "@/components/dashboard/QuickCards";
 
 const Index = () => {
@@ -35,6 +37,10 @@ const Index = () => {
           <>
             <DeviceBanner />
             <CaloriesDonutCard data={nutrition} />
+            <div className="px-4 space-y-4 mt-4">
+              <GoalsSlide data={nutrition} />
+              <WeightSlide />
+            </div>
             <QuickCards />
           </>
         )}
