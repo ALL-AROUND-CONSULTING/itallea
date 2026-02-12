@@ -210,26 +210,33 @@ const Settings = () => {
               <Scale className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
               <span className="text-sm font-medium">La mia bilancia</span>
             </div>
+            <Button
+              className="w-full rounded-xl"
+              style={{ background: "hsl(var(--brand-blue))" }}
+              onClick={() => navigate("/pair-device")}
+            >
+              <QrCode className="mr-2 h-4 w-4" />
+              Collega bilancia
+            </Button>
             <div className="flex gap-2">
               <Input
-                placeholder="Codice dispositivo o QR"
+                placeholder="Oppure inserisci codice manualmente"
                 value={pairingCode}
                 onChange={(e) => setPairingCode(e.target.value)}
                 className="h-9 text-sm"
               />
               <Button
                 size="sm"
+                variant="outline"
                 onClick={handlePairDevice}
                 disabled={pairing}
                 className="h-9 shrink-0"
-                style={{ background: "hsl(var(--brand-blue))" }}
               >
                 {pairing ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <QrCode className="mr-1 h-3 w-3" />
+                  "Collega"
                 )}
-                Collega
               </Button>
             </div>
           </div>

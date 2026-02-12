@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import Welcome from "./pages/Welcome";
 import PostVerify from "./pages/PostVerify";
+import PairDevice from "./pages/PairDevice";
 import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
@@ -50,6 +51,7 @@ const App = () => (
               
               {/* Onboarding (auth required, no layout) */}
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/pair-device" element={<ProtectedRoute><PairDevice /></ProtectedRoute>} />
 
               {/* Admin routes */}
               <Route
