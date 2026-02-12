@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { RecipeList } from "@/components/recipes/RecipeList";
+import logoImg from "@/assets/logo-itallea.png";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -343,9 +344,7 @@ const MyProducts = () => {
             }}
           >
             <div className="flex items-center justify-center gap-2 pt-10 pb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
-                <span className="text-base">🍽️</span>
-              </div>
+              <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
               <span className="text-xl font-bold tracking-wide" style={{ color: "hsl(var(--brand-dark-blue))" }}>
                 ITAL LEA
               </span>
@@ -383,9 +382,7 @@ const MyProducts = () => {
           >
             {/* Logo */}
             <div className="flex items-center justify-center gap-2 pt-10 pb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
-                <span className="text-base">🍽️</span>
-              </div>
+              <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
               <span
                 className="text-xl font-bold tracking-wide"
                 style={{ color: "hsl(var(--brand-dark-blue))" }}
@@ -707,9 +704,7 @@ const MyProducts = () => {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 pt-10 pb-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
-            <span className="text-base">🍽️</span>
-          </div>
+          <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
           <span
             className="text-xl font-bold tracking-wide"
             style={{ color: "hsl(var(--brand-dark-blue))" }}
