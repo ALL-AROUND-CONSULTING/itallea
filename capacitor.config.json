@@ -1,0 +1,9 @@
+{
+  "appId": "app.lovable.575945cfca0842dc852156af458a2079",
+  "appName": "itallea",
+  "webDir": "dist",
+  "server": {
+    "url": "https://575945cf-ca08-42dc-8521-56af458a2079.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  }
+}
