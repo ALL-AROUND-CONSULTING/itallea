@@ -72,8 +72,8 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
-type RecipeCategory = { label: string; icon: string; Illustration: React.ComponentType<{ className?: string; style?: React.CSSProperties }> };
-const RECIPE_CATEGORIES: RecipeCategory[] = [
+type RecipeCategory = { label: string; icon: string; Illustration: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; isCustom?: boolean; id?: string };
+const DEFAULT_CATEGORIES: RecipeCategory[] = [
   { label: "Antipasti", icon: "🍢", Illustration: AntipastiIllustration },
   { label: "Primi", icon: "🍝", Illustration: PrimiIllustration },
   { label: "Secondi", icon: "🥩", Illustration: SecondiIllustration },
@@ -90,6 +90,13 @@ const MyProducts = () => {
   const [products, setProducts] = useState<UserProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [customCategories, setCustomCategories] = useState<RecipeCategory[]>([]);
+  const [newCategoryDialogOpen, setNewCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+
+  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -97,6 +104,70 @@ const MyProducts = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+
+  const fetchCustomCategories = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_recipe_categories")
+      .select("id, name, icon")
+      .eq("user_id", user.id)
+      .order("created_at");
+    setCustomCategories(
+      (data ?? []).map((c) => ({
+        id: c.id,
+        label: c.name,
+        icon: c.icon,
+        Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+          <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon}</span>
+        ),
+        isCustom: true,
+      }))
+    );
+  }, [user]);
+
+  useEffect(() => {
+    fetchCustomCategories();
+  }, [fetchCustomCategories]);
+
+  const handleAddCategory = async () => {
+    if (!user || !newCategoryName.trim()) return;
+    const name = newCategoryName.trim();
+    if (allCategories.some((c) => c.label.toLowerCase() === name.toLowerCase())) {
+      toast.error("Questa categoria esiste già");
+      return;
+    }
+    setSavingCategory(true);
+    const { error } = await supabase.from("user_recipe_categories").insert({
+      user_id: user.id,
+      name,
+      icon: "🍽️",
+    });
+    if (error) {
+      toast.error("Errore: " + error.message);
+    } else {
+      toast.success("Categoria aggiunta!");
+      setNewCategoryDialogOpen(false);
+      setNewCategoryName("");
+      fetchCustomCategories();
+    }
+    setSavingCategory(false);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deleteCategoryId || !user) return;
+    const { error } = await supabase
+      .from("user_recipe_categories")
+      .delete()
+      .eq("id", deleteCategoryId)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Errore: " + error.message);
+    } else {
+      toast.success("Categoria eliminata");
+      fetchCustomCategories();
+    }
+    setDeleteCategoryId(null);
+  };
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -369,16 +440,24 @@ const MyProducts = () => {
           {view === "recipes" ? (
             <div className="px-4 pb-6 pt-2">
               <div className="grid grid-cols-2 gap-4">
-                {RECIPE_CATEGORIES.map((cat) => (
+                {allCategories.map((cat) => (
                   <Card
                     key={cat.label}
-                    className="flex cursor-pointer flex-col items-start gap-3 border-0 p-4 shadow-md transition-transform active:scale-95"
+                    className="relative flex cursor-pointer flex-col items-start gap-3 border-0 p-4 shadow-md transition-transform active:scale-95"
                     style={{ minHeight: "140px" }}
                     onClick={() => {
                       setSelectedCategory(cat);
                       setView("recipe-category");
                     }}
                   >
+                    {cat.isCustom && cat.id && (
+                      <button
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setDeleteCategoryId(cat.id!); }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                     <p className="text-sm font-bold text-foreground">
                       {cat.label}
                     </p>
@@ -391,7 +470,7 @@ const MyProducts = () => {
                 <Card
                   className="flex cursor-pointer flex-col items-start gap-3 border-2 border-dashed border-muted-foreground/20 bg-muted/30 p-4 shadow-none transition-transform active:scale-95"
                   style={{ minHeight: "140px" }}
-                  onClick={() => toast.info("Funzionalità in arrivo!")}
+                  onClick={() => setNewCategoryDialogOpen(true)}
                 >
                   <p className="text-sm font-bold text-muted-foreground">
                     Aggiungi categoria
@@ -567,6 +646,46 @@ const MyProducts = () => {
               <AlertDialogAction onClick={handleDelete}>
                 Elimina
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* New category dialog */}
+        <Dialog open={newCategoryDialogOpen} onOpenChange={setNewCategoryDialogOpen}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle>Nuova categoria</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome categoria *</Label>
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Es. Bevande, Snack..."
+                  maxLength={50}
+                  autoFocus
+                />
+              </div>
+              <Button className="w-full" onClick={handleAddCategory} disabled={savingCategory || !newCategoryName.trim()}>
+                {savingCategory ? "Salvataggio…" : "Aggiungi"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete custom category confirmation */}
+        <AlertDialog open={!!deleteCategoryId} onOpenChange={(v) => !v && setDeleteCategoryId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminare questa categoria?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Le ricette in questa categoria non verranno eliminate.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteCategory}>Elimina</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
