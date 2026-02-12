@@ -25,7 +25,7 @@ import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminProducts from "./pages/admin/AdminProducts";
-
+import Hydration from "./pages/Hydration";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -76,6 +76,7 @@ const App = () => (
                 <Route path="/charts" element={<Charts />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/my-products" element={<MyProducts />} />
+                <Route path="/hydration" element={<Hydration />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

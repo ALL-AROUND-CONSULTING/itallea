@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useWaterLog } from "@/hooks/useWaterLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const WATER_PRESETS = [
 ];
 
 export function WaterSlide() {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { totalMl, count, addGlass, removeLastGlass } = useWaterLog();
 
@@ -36,7 +38,7 @@ export function WaterSlide() {
   const fillY = dropHeight - (dropHeight * percentage) / 100;
 
   return (
-    <div className="rounded-2xl border bg-card p-5">
+    <div className="rounded-2xl border bg-card p-5 cursor-pointer" onClick={() => navigate("/hydration")}>
       <h2 className="mb-4 text-center text-sm font-semibold text-foreground">
         💧 Idratazione
       </h2>
