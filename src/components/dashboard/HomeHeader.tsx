@@ -13,7 +13,7 @@ export function HomeHeader() {
   return (
     <div className="relative">
       <div
-        className="relative overflow-hidden pb-4"
+        className="relative overflow-hidden pb-5"
         style={{
           background:
             "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",

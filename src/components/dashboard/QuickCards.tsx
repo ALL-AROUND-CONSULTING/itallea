@@ -53,7 +53,7 @@ export function QuickCards() {
     ml >= 1000 ? `${(ml / 1000).toFixed(1).replace(".0", "")} L` : `${ml} ml`;
 
   return (
-    <div className="mx-4 mb-2 mt-2 grid grid-cols-2 gap-3">
+    <div className="mx-4 mt-1 grid grid-cols-2 gap-3">
       {/* Hydration */}
       <Card className="flex cursor-pointer flex-col gap-1.5 border-0 p-3 shadow-md" onClick={() => navigate("/hydration")}>
         <p className="text-sm font-bold text-foreground">Idratazione</p>
