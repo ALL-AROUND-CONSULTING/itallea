@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2 } from "lucide-react";
-import { supabase as sbClient } from "@/integrations/supabase/client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario" },
@@ -48,6 +48,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Editable fields
   const [firstName, setFirstName] = useState("");
@@ -131,13 +133,13 @@ const Profile = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { data: sessionData } = await sbClient.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) {
         toast.error("Sessione scaduta. Effettua di nuovo il login.");
         return;
       }
-      const res = await sbClient.functions.invoke("export-user-data");
+      const res = await supabase.functions.invoke("export-user-data");
       if (res.error) throw res.error;
       const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -151,6 +153,22 @@ const Profile = () => {
       toast.error("Errore esportazione: " + (err.message || "Riprova"));
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await supabase.functions.invoke("delete-account");
+      if (res.error) throw res.error;
+      toast.success("Account eliminato con successo.");
+      await signOut();
+      navigate("/login", { replace: true });
+    } catch (err: any) {
+      toast.error("Errore eliminazione: " + (err.message || "Riprova"));
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -326,11 +344,32 @@ const Profile = () => {
             <span>Esporta dati</span>
             {exporting && <span className="ml-auto text-xs text-muted-foreground">Esportazione…</span>}
           </button>
-          <button className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-destructive" disabled>
-            <Trash2 className="h-4 w-4" />
-            <span>Elimina account</span>
-            <span className="ml-auto text-xs">Prossimamente</span>
-          </button>
+          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <button className="flex w-full items-center gap-3 rounded-lg border border-destructive/30 bg-card p-3 text-sm text-destructive">
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                <span>Elimina account</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sei sicuro di voler eliminare il tuo account?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Questa azione è irreversibile. Tutti i tuoi dati (profilo, pesate, acqua, peso, prodotti, ricette) verranno eliminati permanentemente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deleting}
+                >
+                  {deleting ? "Eliminazione…" : "Elimina definitivamente"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {/* Logout */}
