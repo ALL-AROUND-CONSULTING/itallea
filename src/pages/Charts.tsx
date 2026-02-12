@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useWeightLog } from "@/hooks/useWeightLog";
 import { useRangeNutrition, type RangeKey } from "@/hooks/useRangeNutrition";
@@ -33,7 +33,21 @@ const Charts = () => {
 
   return (
     <>
-      <PageHeader title="Grafici" />
+      <div
+        className="relative overflow-hidden pb-5"
+        style={{
+          background:
+            "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
+          borderRadius: "0 0 2rem 2rem",
+        }}
+      >
+        <h1
+          className="pt-6 pb-4 text-center text-xl font-bold tracking-tight"
+          style={{ color: "hsl(var(--brand-dark-blue))" }}
+        >
+          📊 Grafici
+        </h1>
+      </div>
       <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
         {/* Range selector */}
         <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>

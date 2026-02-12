@@ -3,19 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
-import { useTheme } from "next-themes";
-import { useAdminCheck } from "@/hooks/useAdminCheck";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield, QrCode, Unplug, Camera } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Settings, Camera, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario" },
@@ -44,23 +39,14 @@ type FullProfile = {
 };
 
 const Profile = () => {
-  const { user, signOut, refreshProfile } = useAuth();
-  const { isAdmin } = useAdminCheck();
-  const { theme, setTheme } = useTheme();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [pairedDevice, setPairedDevice] = useState<any>(null);
-  const [pairingCode, setPairingCode] = useState("");
-  const [pairing, setPairing] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Editable fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -99,52 +85,6 @@ const Profile = () => {
       });
   }, [user]);
 
-  // Load paired device
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("devices")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .order("paired_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => setPairedDevice(data));
-  }, [user]);
-
-  const handlePairDevice = async () => {
-    if (!pairingCode.trim()) { toast.error("Inserisci il codice dispositivo"); return; }
-    setPairing(true);
-    const res = await supabase.functions.invoke("pair-device", {
-      method: "POST",
-      body: { hardware_device_id: pairingCode.trim() },
-    });
-    if (res.error) {
-      toast.error("Errore pairing: " + (res.error.message || "Riprova"));
-    } else {
-      toast.success(res.data.message || "Dispositivo collegato!");
-      setPairingCode("");
-      const { data } = await supabase.from("devices").select("*").eq("user_id", user!.id).eq("is_active", true).order("paired_at", { ascending: false }).limit(1).maybeSingle();
-      setPairedDevice(data);
-    }
-    setPairing(false);
-  };
-
-  const handleUnpairDevice = async () => {
-    if (!pairedDevice) return;
-    const res = await supabase.functions.invoke("pair-device", {
-      method: "DELETE",
-      body: { deviceId: pairedDevice.id },
-    });
-    if (res.error) {
-      toast.error("Errore disconnessione");
-    } else {
-      toast.success("Dispositivo scollegato");
-      setPairedDevice(null);
-    }
-  };
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -169,7 +109,6 @@ const Profile = () => {
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-
     const dob = new Date(dateOfBirth);
     const age = calculateAge(dob);
     const sexVal = sex as "male" | "female";
@@ -211,88 +150,77 @@ const Profile = () => {
     setSaving(false);
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        toast.error("Sessione scaduta. Effettua di nuovo il login.");
-        return;
-      }
-      const res = await supabase.functions.invoke("export-user-data");
-      if (res.error) throw res.error;
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ital-lea-export-${new Date().toISOString().split("T")[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Dati esportati con successo!");
-    } catch (err: any) {
-      toast.error("Errore esportazione: " + (err.message || "Riprova"));
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    setDeleting(true);
-    try {
-      const res = await supabase.functions.invoke("delete-account");
-      if (res.error) throw res.error;
-      toast.success("Account eliminato con successo.");
-      await signOut();
-      navigate("/login", { replace: true });
-    } catch (err: any) {
-      toast.error("Errore eliminazione: " + (err.message || "Riprova"));
-    } finally {
-      setDeleting(false);
-      setDeleteConfirmOpen(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login", { replace: true });
-  };
+  const initials = ((firstName || "U")[0] ?? "U").toUpperCase();
 
   if (loading) {
     return (
-      <>
-        <PageHeader title="Profilo" showThemeToggle />
-        <div className="flex flex-1 items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-      </>
+      <div className="flex flex-1 items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
     );
   }
 
   return (
     <>
-      <PageHeader title="Profilo" showThemeToggle />
-      <div className="mx-auto max-w-sm space-y-4 px-4 py-4">
+      {/* Brand gradient header with avatar */}
+      <div
+        className="relative overflow-hidden pb-6"
+        style={{
+          background:
+            "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
+          borderRadius: "0 0 2rem 2rem",
+        }}
+      >
+        {/* Settings gear icon */}
+        <div className="flex justify-end px-4 pt-5">
+          <motion.button
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 shadow-sm"
+            aria-label="Impostazioni"
+            onClick={() => navigate("/settings")}
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08 }}
+          >
+            <Settings className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
+          </motion.button>
+        </div>
+
         {/* Avatar */}
-        <div className="flex flex-col items-center gap-2">
+        <motion.div
+          className="flex flex-col items-center gap-1 pb-1"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <button
             onClick={() => avatarInputRef.current?.click()}
-            className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/30 bg-muted transition-colors hover:bg-muted/80"
+            className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white shadow-lg"
+            style={{ background: "hsl(var(--brand-blue))" }}
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
             ) : avatarUploading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <Loader2 className="h-5 w-5 animate-spin text-white" />
             ) : (
-              <Camera className="h-5 w-5 text-muted-foreground" />
+              initials
             )}
+            <div className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow">
+              <Camera className="h-3 w-3 text-muted-foreground" />
+            </div>
           </button>
-          <p className="text-xs text-muted-foreground">Tocca per cambiare foto</p>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-        </div>
+          <p
+            className="mt-1 text-base font-semibold"
+            style={{ color: "hsl(var(--brand-dark-blue))" }}
+          >
+            {firstName} {lastName}
+          </p>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
+        </motion.div>
+      </div>
 
+      <div className="mx-auto max-w-sm space-y-4 px-4 py-4">
         {/* Personal data */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">👤 Dati Personali</CardTitle>
           </CardHeader>
@@ -326,7 +254,7 @@ const Profile = () => {
         </Card>
 
         {/* Body */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">⚖️ Misurazioni</CardTitle>
           </CardHeader>
@@ -349,7 +277,7 @@ const Profile = () => {
         </Card>
 
         {/* Activity */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">🏃 Attività & Idratazione</CardTitle>
           </CardHeader>
@@ -376,9 +304,9 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Current targets (read-only preview) */}
+        {/* Current targets */}
         {profile && (
-          <Card>
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">🎯 Target Giornalieri</CardTitle>
             </CardHeader>
@@ -405,122 +333,13 @@ const Profile = () => {
           </Card>
         )}
 
-        <Button className="w-full" onClick={handleSave} disabled={saving}>
+        <Button
+          className="w-full rounded-2xl"
+          onClick={handleSave}
+          disabled={saving}
+          style={{ background: "hsl(var(--brand-blue))" }}
+        >
           {saving ? "Salvataggio…" : "Salva e Ricalcola Target"}
-        </Button>
-
-        <Separator />
-
-        {/* Theme toggle */}
-        <div className="flex items-center justify-between rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2">
-            <Moon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Tema scuro</span>
-          </div>
-          <Switch
-            checked={theme === "dark"}
-            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-          />
-        </div>
-
-        {/* Admin link */}
-        {isAdmin && (
-          <button
-            className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-card p-3 text-sm text-primary font-medium"
-            onClick={() => navigate("/admin")}
-          >
-            <Shield className="h-4 w-4" />
-            <span>Pannello Admin</span>
-            <span className="ml-auto text-xs">→</span>
-          </button>
-        )}
-
-        {/* Placeholder sections */}
-        <div className="space-y-2">
-          <button
-            className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-foreground"
-            onClick={() => navigate("/my-products")}
-          >
-            <Package className="h-4 w-4 text-primary" />
-            <span>I miei prodotti</span>
-            <span className="ml-auto text-xs text-muted-foreground">→</span>
-          </button>
-          {/* Device pairing */}
-          {pairedDevice ? (
-            <div className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-card p-3">
-              <Scale className="h-4 w-4 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">Bilancia collegata</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {pairedDevice.hardware_device_id}
-                  {pairedDevice.serial_number && ` · S/N ${pairedDevice.serial_number}`}
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" className="shrink-0 text-destructive h-8 w-8" onClick={handleUnpairDevice}>
-                <Unplug className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-lg border bg-card p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <Scale className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">La mia bilancia</span>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Codice dispositivo o QR"
-                  value={pairingCode}
-                  onChange={(e) => setPairingCode(e.target.value)}
-                  className="text-sm h-8"
-                />
-                <Button size="sm" onClick={handlePairDevice} disabled={pairing} className="shrink-0 h-8">
-                  {pairing ? <Loader2 className="h-3 w-3 animate-spin" /> : <QrCode className="h-3 w-3 mr-1" />}
-                  Collega
-                </Button>
-              </div>
-            </div>
-          )}
-          <button
-            className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-sm text-foreground"
-            onClick={handleExport}
-            disabled={exporting}
-          >
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Download className="h-4 w-4 text-primary" />}
-            <span>Esporta dati</span>
-            {exporting && <span className="ml-auto text-xs text-muted-foreground">Esportazione…</span>}
-          </button>
-          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-            <AlertDialogTrigger asChild>
-              <button className="flex w-full items-center gap-3 rounded-lg border border-destructive/30 bg-card p-3 text-sm text-destructive">
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                <span>Elimina account</span>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Sei sicuro di voler eliminare il tuo account?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Questa azione è irreversibile. Tutti i tuoi dati (profilo, pesate, acqua, peso, prodotti, ricette) verranno eliminati permanentemente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annulla</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={deleting}
-                >
-                  {deleting ? "Eliminazione…" : "Elimina definitivamente"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-
-        {/* Logout */}
-        <Button variant="outline" className="w-full" onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Esci
         </Button>
       </div>
     </>

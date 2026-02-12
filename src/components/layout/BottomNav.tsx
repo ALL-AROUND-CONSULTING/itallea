@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, Database, Plus, Settings, User } from "lucide-react";
+import { Home, Database, Plus, BarChart3, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { QuickActionSheet } from "@/components/layout/QuickActionSheet";
@@ -7,7 +7,7 @@ const navItems = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/my-products", icon: Database, label: "Database" },
   { type: "fab" as const },
-  { to: "/charts", icon: Settings, label: "Impostazioni" },
+  { to: "/charts", icon: BarChart3, label: "Grafici" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 

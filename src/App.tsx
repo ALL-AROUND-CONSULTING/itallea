@@ -13,6 +13,7 @@ import Diary from "./pages/Diary";
 import Scan from "./pages/Scan";
 import Charts from "./pages/Charts";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import MyProducts from "./pages/MyProducts";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/my-products" element={<MyProducts />} />
                 <Route path="/hydration" element={<Hydration />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
