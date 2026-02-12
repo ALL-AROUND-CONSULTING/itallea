@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Camera, CameraOff, Keyboard, Loader2 } from "lucide-react";
+import { ChevronLeft, Zap, PenSquare, Image, Loader2 } from "lucide-react";
 
 type ScannedProduct = {
   id: string;
@@ -34,27 +34,35 @@ type ScannedProduct = {
 
 const Scan = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Scanner state
   const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [showManual, setShowManual] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Lookup state
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ScannedProduct | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [lookupSource, setLookupSource] = useState<string>("");
+  const [lookupSource, setLookupSource] = useState("");
 
-  // Weighing form
   const [grams, setGrams] = useState("");
   const [mealType, setMealType] = useState("lunch");
   const [saving, setSaving] = useState(false);
 
-  // Cleanup scanner on unmount
+  // Auto-start scanner on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!scanning && !product && !loading && !notFound && !showManual) {
+        startScanner();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
@@ -65,56 +73,53 @@ const Scan = () => {
     };
   }, []);
 
-  const lookupBarcode = useCallback(
-    async (code: string) => {
-      setLoading(true);
-      setProduct(null);
-      setNotFound(false);
-      setGrams("");
+  const lookupBarcode = useCallback(async (code: string) => {
+    setLoading(true);
+    setProduct(null);
+    setNotFound(false);
+    setGrams("");
 
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.session?.access_token;
-        if (!token) {
-          toast.error("Devi essere autenticato");
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-barcode?code=${encodeURIComponent(code)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-          }
-        );
-
-        const data = await res.json();
-
-        if (data.found && data.product) {
-          setProduct({
-            ...data.product,
-            kcal_per_100g: Number(data.product.kcal_per_100g),
-            protein_per_100g: Number(data.product.protein_per_100g),
-            carbs_per_100g: Number(data.product.carbs_per_100g),
-            fat_per_100g: Number(data.product.fat_per_100g),
-            fiber_per_100g: Number(data.product.fiber_per_100g ?? 0),
-            salt_per_100g: Number(data.product.salt_per_100g ?? 0),
-          });
-          setLookupSource(data.source);
-        } else {
-          setNotFound(true);
-        }
-      } catch {
-        toast.error("Errore nella ricerca del prodotto");
-      } finally {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) {
+        toast.error("Devi essere autenticato");
         setLoading(false);
+        return;
       }
-    },
-    []
-  );
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-barcode?code=${encodeURIComponent(code)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.found && data.product) {
+        setProduct({
+          ...data.product,
+          kcal_per_100g: Number(data.product.kcal_per_100g),
+          protein_per_100g: Number(data.product.protein_per_100g),
+          carbs_per_100g: Number(data.product.carbs_per_100g),
+          fat_per_100g: Number(data.product.fat_per_100g),
+          fiber_per_100g: Number(data.product.fiber_per_100g ?? 0),
+          salt_per_100g: Number(data.product.salt_per_100g ?? 0),
+        });
+        setLookupSource(data.source);
+      } else {
+        setNotFound(true);
+      }
+    } catch {
+      toast.error("Errore nella ricerca del prodotto");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const startScanner = useCallback(async () => {
     if (!containerRef.current) return;
@@ -137,11 +142,11 @@ const Scan = () => {
             lookupBarcode(decodedText);
           });
         },
-        () => {} // ignore scan errors
+        () => {}
       );
 
       setScanning(true);
-    } catch (err: any) {
+    } catch {
       toast.error("Impossibile accedere alla fotocamera");
     }
   }, [lookupBarcode]);
@@ -211,50 +216,58 @@ const Scan = () => {
     setMealType("lunch");
     setManualCode("");
     setLookupSource("");
+    setShowManual(false);
+    // Restart scanner
+    setTimeout(() => startScanner(), 300);
   };
 
-  return (
-    <>
-      <PageHeader title="Scansiona" />
-      <div className="flex flex-1 flex-col px-4 pb-6 pt-2">
-        {/* Phase 1: No product yet – show scanner or manual input */}
-        {!product && !loading && !notFound && (
-          <div className="flex flex-1 flex-col items-center gap-4">
-            {/* Camera preview area */}
-            <div
-              ref={containerRef}
-              className="relative w-full max-w-sm overflow-hidden rounded-2xl border bg-muted"
-              style={{ minHeight: scanning ? 300 : 200 }}
-            >
-              <div id="barcode-reader" className="w-full" />
-              {!scanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  <Camera className="h-12 w-12 text-muted-foreground/50" />
-                  <Button onClick={startScanner}>
-                    <Camera className="mr-2 h-4 w-4" /> Avvia Fotocamera
-                  </Button>
-                </div>
-              )}
+  // ── Scanner view (no product yet) ──
+  if (!product && !loading && !notFound) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        {/* Header overlay */}
+        <div className="absolute left-0 right-0 top-0 z-10 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent px-4 pb-6 pt-4">
+          <button onClick={() => { stopScanner(); navigate(-1); }}>
+            <ChevronLeft className="h-6 w-6 text-white" />
+          </button>
+          <h1 className="text-lg font-semibold text-white">Scanner per codici a barre</h1>
+        </div>
+
+        {/* Camera area – full screen */}
+        <div ref={containerRef} className="relative flex-1">
+          <div id="barcode-reader" className="h-full w-full [&>video]:h-full [&>video]:w-full [&>video]:object-cover" />
+
+          {/* Corner brackets overlay */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="relative h-48 w-72">
+              {/* Top-left */}
+              <div className="absolute left-0 top-0 h-8 w-8 rounded-tl-2xl border-l-[3px] border-t-[3px] border-white/80" />
+              {/* Top-right */}
+              <div className="absolute right-0 top-0 h-8 w-8 rounded-tr-2xl border-r-[3px] border-t-[3px] border-white/80" />
+              {/* Bottom-left */}
+              <div className="absolute bottom-0 left-0 h-8 w-8 rounded-bl-2xl border-b-[3px] border-l-[3px] border-white/80" />
+              {/* Bottom-right */}
+              <div className="absolute bottom-0 right-0 h-8 w-8 rounded-br-2xl border-b-[3px] border-r-[3px] border-white/80" />
             </div>
+          </div>
 
-            {scanning && (
-              <Button variant="outline" onClick={stopScanner}>
-                <CameraOff className="mr-2 h-4 w-4" /> Ferma Scanner
-              </Button>
-            )}
-
-            <div className="flex w-full max-w-sm items-center gap-2">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">oppure</span>
-              <div className="h-px flex-1 bg-border" />
+          {/* Not scanning yet – tap to start */}
+          {!scanning && !showManual && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+              <button
+                onClick={startScanner}
+                className="rounded-2xl bg-white/10 px-6 py-4 text-white backdrop-blur"
+              >
+                Tocca per avviare la fotocamera
+              </button>
             </div>
+          )}
 
-            {!showManual ? (
-              <Button variant="outline" onClick={() => { stopScanner(); setShowManual(true); }}>
-                <Keyboard className="mr-2 h-4 w-4" /> Inserisci Codice
-              </Button>
-            ) : (
-              <div className="flex w-full max-w-sm gap-2">
+          {/* Manual input overlay */}
+          {showManual && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-8">
+              <div className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-5">
+                <h3 className="text-sm font-semibold text-foreground">Inserisci codice a barre</h3>
                 <Input
                   placeholder="Codice a barre…"
                   value={manualCode}
@@ -262,144 +275,189 @@ const Scan = () => {
                   onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
                   autoFocus
                 />
-                <Button onClick={handleManualSubmit}>Cerca</Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Ricerca prodotto…</p>
-          </div>
-        )}
-
-        {/* Not found */}
-        {notFound && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4">
-            <p className="text-center text-muted-foreground">
-              Prodotto non trovato 😕
-            </p>
-            <Button onClick={resetAll}>Scansiona un altro</Button>
-          </div>
-        )}
-
-        {/* Phase 2: Product found – show details + weighing form */}
-        {product && (
-          <div className="mx-auto w-full max-w-sm space-y-4">
-            {/* Product card */}
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex gap-3">
-                {product.image_url && (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="h-16 w-16 rounded-lg object-cover"
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">{product.name}</h3>
-                  {product.brand && (
-                    <p className="text-xs text-muted-foreground">{product.brand}</p>
-                  )}
-                  <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    {lookupSource === "local" ? "Database locale" : "Open Food Facts"}
-                  </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => { setShowManual(false); startScanner(); }}>
+                    Annulla
+                  </Button>
+                  <Button className="flex-1" onClick={handleManualSubmit}>Cerca</Button>
                 </div>
-              </div>
-
-              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-                <div>
-                  <div className="text-sm font-bold text-primary">{product.kcal_per_100g}</div>
-                  <div className="text-[9px] text-muted-foreground">kcal</div>
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-foreground">{product.protein_per_100g}g</div>
-                  <div className="text-[9px] text-muted-foreground">Proteine</div>
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-foreground">{product.carbs_per_100g}g</div>
-                  <div className="text-[9px] text-muted-foreground">Carbo</div>
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-foreground">{product.fat_per_100g}g</div>
-                  <div className="text-[9px] text-muted-foreground">Grassi</div>
-                </div>
-              </div>
-              <p className="mt-1 text-center text-[9px] text-muted-foreground">per 100g</p>
-            </div>
-
-            {/* Weighing form */}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Grammi</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  min="1"
-                  max="2000"
-                  value={grams}
-                  onChange={(e) => setGrams(e.target.value)}
-                  placeholder="150"
-                  autoFocus
-                />
-              </div>
-
-              {preview && (
-                <div className="grid grid-cols-4 gap-2 rounded-lg bg-primary/5 p-3 text-center">
-                  <div>
-                    <div className="text-sm font-bold text-primary">{preview.kcal}</div>
-                    <div className="text-[9px] text-muted-foreground">kcal</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground">{preview.protein}g</div>
-                    <div className="text-[9px] text-muted-foreground">Proteine</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground">{preview.carbs}g</div>
-                    <div className="text-[9px] text-muted-foreground">Carbo</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground">{preview.fat}g</div>
-                    <div className="text-[9px] text-muted-foreground">Grassi</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <Label className="text-xs">Pasto</Label>
-                <Select value={mealType} onValueChange={setMealType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="breakfast">🌅 Colazione</SelectItem>
-                    <SelectItem value="lunch">☀️ Pranzo</SelectItem>
-                    <SelectItem value="dinner">🌙 Cena</SelectItem>
-                    <SelectItem value="snack">🍪 Snack</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={resetAll}>
-                  Scansiona altro
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={!preview || saving}
-                  onClick={handleSave}
-                >
-                  {saving ? "Salvataggio…" : "Salva ✓"}
-                </Button>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Flash toggle */}
+        <div className="absolute inset-x-0 bottom-36 flex flex-col items-center gap-1">
+          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur">
+            <Zap className="h-5 w-5 text-white" />
+          </button>
+          <span className="text-xs text-white/70">Accendi la torcia</span>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="bg-black/60 px-6 pb-8 pt-4 backdrop-blur">
+          <div className="mx-auto flex max-w-sm justify-center gap-8">
+            <button
+              onClick={() => { stopScanner(); setShowManual(true); }}
+              className="flex flex-col items-center gap-2"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <PenSquare className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xs text-white/80">Inserimento manuale</span>
+            </button>
+
+            <button className="flex flex-col items-center gap-2">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <Image className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xs text-white/80">Album</span>
+            </button>
           </div>
-        )}
+        </div>
       </div>
-    </>
+    );
+  }
+
+  // ── Loading ──
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Ricerca prodotto…</p>
+      </div>
+    );
+  }
+
+  // ── Not found ──
+  if (notFound) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        <div className="flex items-center gap-3 border-b px-4 py-4">
+          <button onClick={() => { resetAll(); }}>
+            <ChevronLeft className="h-5 w-5 text-foreground" />
+          </button>
+          <span className="text-base font-semibold">Scanner</span>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
+          <p className="text-center text-muted-foreground">Prodotto non trovato 😕</p>
+          <Button onClick={resetAll}>Scansiona un altro</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Product found ──
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+      <div className="flex items-center gap-3 border-b px-4 py-4">
+        <button onClick={resetAll}>
+          <ChevronLeft className="h-5 w-5 text-foreground" />
+        </button>
+        <span className="text-base font-semibold">Informazioni sul cibo</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+        <div className="mx-auto w-full max-w-sm space-y-4">
+          {/* Product card */}
+          <div className="rounded-2xl border bg-card p-4">
+            <div className="flex items-center gap-3">
+              {product!.image_url ? (
+                <img src={product!.image_url} alt={product!.name} className="h-14 w-14 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-2xl">🍽️</div>
+              )}
+              <div>
+                <div className="text-sm font-semibold text-foreground">{product!.name}</div>
+                {product!.brand && <div className="text-xs text-muted-foreground">{product!.brand}</div>}
+                <div className="text-xs text-muted-foreground">{product!.kcal_per_100g}kcal / 100g</div>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+              <div>
+                <div className="text-lg font-bold" style={{ color: "#ef7b45" }}>{product!.kcal_per_100g}<span className="text-xs font-normal">kcal</span></div>
+                <div className="text-[10px] text-muted-foreground">Calorie</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold" style={{ color: "#5ba0d9" }}>{product!.carbs_per_100g}<span className="text-xs font-normal">g</span></div>
+                <div className="text-[10px] text-muted-foreground">Carboidrati</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold" style={{ color: "#6bc26b" }}>{product!.protein_per_100g}<span className="text-xs font-normal">g</span></div>
+                <div className="text-[10px] text-muted-foreground">Proteine</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold" style={{ color: "#f5c542" }}>{product!.fat_per_100g}<span className="text-xs font-normal">g</span></div>
+                <div className="text-[10px] text-muted-foreground">Grasso</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gram input */}
+          <div className="space-y-1">
+            <Label className="text-xs">Grammi</Label>
+            <Input
+              type="number"
+              step="1"
+              min="1"
+              max="2000"
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+              placeholder="100"
+              className="rounded-xl"
+              autoFocus
+            />
+          </div>
+
+          {preview && (
+            <div className="grid grid-cols-4 gap-2 rounded-xl bg-primary/5 p-3 text-center">
+              <div>
+                <div className="text-sm font-bold" style={{ color: "#ef7b45" }}>{preview.kcal}</div>
+                <div className="text-[9px] text-muted-foreground">kcal</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold" style={{ color: "#5ba0d9" }}>{preview.carbs}g</div>
+                <div className="text-[9px] text-muted-foreground">Carbo</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold" style={{ color: "#6bc26b" }}>{preview.protein}g</div>
+                <div className="text-[9px] text-muted-foreground">Proteine</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold" style={{ color: "#f5c542" }}>{preview.fat}g</div>
+                <div className="text-[9px] text-muted-foreground">Grassi</div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <Label className="text-xs">Pasto</Label>
+            <Select value={mealType} onValueChange={setMealType}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="breakfast">🌅 Colazione</SelectItem>
+                <SelectItem value="lunch">☀️ Pranzo</SelectItem>
+                <SelectItem value="dinner">🌙 Cena</SelectItem>
+                <SelectItem value="snack">🍪 Snack</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={resetAll}>
+              Scansiona altro
+            </Button>
+            <Button
+              className="flex-1 rounded-xl"
+              disabled={!preview || saving}
+              onClick={handleSave}
+            >
+              {saving ? "Salvataggio…" : "Salva ✓"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
