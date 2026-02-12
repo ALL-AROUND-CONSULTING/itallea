@@ -79,16 +79,9 @@ export default function AdminUsers() {
   const handleViewMeals = async (user: AdminUser) => {
     setMealsUser(user);
     setMealsLoading(true);
-    const res = await supabase.functions.invoke("admin-manage-users", {
-      method: "GET",
-      body: undefined,
-      headers: undefined,
-    });
-    // Use query params via URL - invoke doesn't support query params natively,
-    // so we call with a workaround
     const { data, error } = await supabase.functions.invoke(
-      `admin-manage-users?userId=${user.id}`,
-      { method: "GET" }
+      "admin-manage-users",
+      { method: "GET", body: { userId: user.id } }
     );
     if (error) {
       toast.error("Errore caricamento pasti");

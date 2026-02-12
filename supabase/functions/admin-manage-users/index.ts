@@ -24,7 +24,16 @@ Deno.serve(async (req) => {
   if (!isAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
   const url = new URL(req.url);
-  const targetUserId = url.searchParams.get("userId");
+  let targetUserId = url.searchParams.get("userId");
+
+  // Also support userId from request body (for clients that can't send query params)
+  if (!targetUserId && req.method === "GET") {
+    try {
+      const cloned = req.clone();
+      const body = await cloned.json();
+      if (body?.userId) targetUserId = body.userId;
+    } catch { /* no body */ }
+  }
 
   // GET - list users OR get user weighings
   if (req.method === "GET") {
