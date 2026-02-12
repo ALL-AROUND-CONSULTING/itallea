@@ -157,7 +157,7 @@ const Settings = () => {
       >
         <div className="flex items-center gap-3 px-4 pt-6 pb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 shadow-sm"
           >
             <ArrowLeft className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
