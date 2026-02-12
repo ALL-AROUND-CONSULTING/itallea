@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
+import logoImg from "@/assets/logo-itallea.png";
 import { useWeightLog } from "@/hooks/useWeightLog";
 import { useRangeNutrition, type RangeKey } from "@/hooks/useRangeNutrition";
 import { useWaterHistory } from "@/hooks/useWaterHistory";
@@ -41,11 +42,14 @@ const Charts = () => {
           borderRadius: "0 0 2rem 2rem",
         }}
       >
+        <div className="flex items-center justify-center pt-6 pb-1">
+          <img src={logoImg} alt="ItalLea" className="h-12" style={{ objectFit: "contain" }} />
+        </div>
         <h1
-          className="pt-6 pb-4 text-center text-xl font-bold tracking-tight"
+          className="pb-4 text-center text-xl font-bold tracking-tight"
           style={{ color: "hsl(var(--brand-dark-blue))" }}
         >
-          📊 Grafici
+          Grafici
         </h1>
       </div>
       <div className="mx-auto max-w-lg space-y-4 px-4 py-4">

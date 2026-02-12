@@ -343,11 +343,8 @@ const MyProducts = () => {
               borderRadius: "0 0 2rem 2rem",
             }}
           >
-            <div className="flex items-center justify-center gap-2 pt-10 pb-3">
-              <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
-              <span className="text-xl font-bold tracking-wide" style={{ color: "hsl(var(--brand-dark-blue))" }}>
-                ITAL LEA
-              </span>
+            <div className="flex items-center justify-center pt-10 pb-3">
+              <img src={logoImg} alt="ItalLea" className="h-12" style={{ objectFit: "contain" }} />
             </div>
             <div className="flex items-center justify-between px-5 pb-4">
               <div className="flex items-center gap-3">
@@ -381,14 +378,8 @@ const MyProducts = () => {
             }}
           >
             {/* Logo */}
-            <div className="flex items-center justify-center gap-2 pt-10 pb-3">
-              <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
-              <span
-                className="text-xl font-bold tracking-wide"
-                style={{ color: "hsl(var(--brand-dark-blue))" }}
-              >
-                ITAL LEA
-              </span>
+            <div className="flex items-center justify-center pt-10 pb-3">
+              <img src={logoImg} alt="ItalLea" className="h-12" style={{ objectFit: "contain" }} />
             </div>
 
             {/* Title row */}
@@ -703,14 +694,8 @@ const MyProducts = () => {
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 pt-10 pb-4">
-          <img src={logoImg} alt="ItalLea" className="h-9 w-9 rounded-xl" />
-          <span
-            className="text-xl font-bold tracking-wide"
-            style={{ color: "hsl(var(--brand-dark-blue))" }}
-          >
-            ITAL LEA
-          </span>
+        <div className="flex items-center justify-center pt-10 pb-4">
+          <img src={logoImg} alt="ItalLea" className="h-12" style={{ objectFit: "contain" }} />
         </div>
 
         {/* Title row */}
