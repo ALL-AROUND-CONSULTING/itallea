@@ -9,6 +9,7 @@ type Profile = {
   onboarding_completed: boolean;
   theme: string;
   water_goal_ml: number;
+  avatar_url: string | null;
 };
 
 type AuthContextType = {
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, onboarding_completed, theme, water_goal_ml")
+      .select("id, first_name, last_name, onboarding_completed, theme, water_goal_ml, avatar_url")
       .eq("id", userId)
       .single();
     setProfile(data);

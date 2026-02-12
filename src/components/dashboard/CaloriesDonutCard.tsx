@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import type { DailyNutrition } from "@/hooks/useDailyNutrition";
+import { motion } from "framer-motion";
 
 const RADIUS = 60;
 const STROKE = 16;
@@ -39,7 +40,7 @@ export function CaloriesDonutCard({ data }: Props) {
 
   return (
     <Card className="mx-4 mb-4 overflow-hidden border-0 shadow-md">
-      {/* Title area */}
+      {/* Title area — counter animation */}
       <div className="px-5 pt-5 pb-1 text-center">
         <p
           className="text-sm font-semibold"
@@ -90,9 +91,15 @@ export function CaloriesDonutCard({ data }: Props) {
           </svg>
           {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-foreground">
+            <motion.span
+              className="text-2xl font-bold text-foreground"
+              key={remaining}
+              initial={{ scale: 1.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
               {remaining}
-            </span>
+            </motion.span>
             <span className="text-[10px] text-muted-foreground">rimanenti</span>
           </div>
         </div>

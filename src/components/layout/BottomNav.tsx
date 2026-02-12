@@ -3,6 +3,7 @@ import { Home, Database, Settings, User, Plus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WeighingModal } from "@/components/weighing/WeighingModal";
+import { motion } from "framer-motion";
 
 const navItems = [
   { to: "/", icon: Home, label: "Home" },
@@ -23,15 +24,18 @@ export function BottomNav() {
           {navItems.map((item, idx) => {
             if ("type" in item && item.type === "fab") {
               return (
-                <button
+                <motion.button
                   key="fab"
                   onClick={() => setWeighingOpen(true)}
-                  className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+                  className="-mt-7 flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
                   style={{ background: "hsl(var(--brand-blue))" }}
                   aria-label="Nuova pesata"
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
-                </button>
+                </motion.button>
               );
             }
 
@@ -50,20 +54,29 @@ export function BottomNav() {
                 key={to}
                 to={to}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors",
+                  "relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon
-                  className={cn(
-                    "h-5 w-5 transition-all",
-                    isActive && "scale-110"
-                  )}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
+                <motion.div
+                  animate={isActive ? { scale: 1.15, y: -2 } : { scale: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                >
+                  <Icon
+                    className="h-5 w-5"
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                </motion.div>
                 <span>{label}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute -bottom-1.5 h-0.5 w-4 rounded-full bg-primary"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </NavLink>
             );
           })}
