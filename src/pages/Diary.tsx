@@ -174,36 +174,47 @@ const Diary = () => {
 
             {/* Water tracking */}
             <Separator className="my-3" />
-            <div className="flex items-center justify-between rounded-xl border bg-card p-3">
-              <div className="flex items-center gap-3">
-                <Droplets className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    💧 Acqua · {totalMl} ml
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {count} bicchier{count === 1 ? "e" : "i"} · {waterPct}% di {waterGoal} ml
-                  </p>
+            <div className="rounded-xl border bg-card p-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Droplets className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      💧 Acqua · {totalMl} ml
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {waterPct}% di {waterGoal} ml
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1">
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="outline"
-                  className="h-8 w-8"
+                  className="h-7 text-xs"
                   onClick={() => removeLastGlass.mutate()}
                   disabled={count === 0 || removeLastGlass.isPending}
                 >
-                  <Minus className="h-3.5 w-3.5" />
+                  <Minus className="mr-1 h-3 w-3" /> Rimuovi
                 </Button>
-                <Button
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => addGlass.mutate(250)}
-                  disabled={addGlass.isPending}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { ml: 250, label: "250ml", icon: "🥛" },
+                  { ml: 500, label: "500ml", icon: "🧴" },
+                  { ml: 700, label: "700ml", icon: "🫙" },
+                  { ml: 1000, label: "1L", icon: "🍶" },
+                  { ml: 1500, label: "1.5L", icon: "💧" },
+                ].map((preset) => (
+                  <button
+                    key={preset.ml}
+                    onClick={() => addGlass.mutate(preset.ml)}
+                    disabled={addGlass.isPending}
+                    className="flex flex-1 min-w-0 flex-col items-center gap-0.5 rounded-xl border bg-background px-2 py-1.5 text-center shadow-sm transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    <span className="text-base">{preset.icon}</span>
+                    <span className="text-[10px] font-semibold text-foreground">{preset.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </>
