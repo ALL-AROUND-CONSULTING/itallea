@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          id: string
+          message: string
+          sent_at: string
+          sent_by: string
+          sent_to_count: number
+          title: string
+          url: string | null
+        }
+        Insert: {
+          id?: string
+          message: string
+          sent_at?: string
+          sent_by: string
+          sent_to_count?: number
+          title: string
+          url?: string | null
+        }
+        Update: {
+          id?: string
+          message?: string
+          sent_at?: string
+          sent_by?: string
+          sent_to_count?: number
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      product_submissions: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          carbs_per_100g: number
+          created_at: string
+          fat_per_100g: number
+          fiber_per_100g: number
+          id: string
+          image_url: string | null
+          kcal_per_100g: number
+          name: string
+          protein_per_100g: number
+          reviewed_by: string | null
+          salt_per_100g: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name: string
+          protein_per_100g?: number
+          reviewed_by?: string | null
+          salt_per_100g?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          fiber_per_100g?: number
+          id?: string
+          image_url?: string | null
+          kcal_per_100g?: number
+          name?: string
+          protein_per_100g?: number
+          reviewed_by?: string | null
+          salt_per_100g?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null
