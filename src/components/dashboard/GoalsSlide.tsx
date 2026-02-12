@@ -41,12 +41,12 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
   ];
 
   return (
-    <Card className="border-0 shadow-md px-4 py-3">
+    <Card className="border-0 shadow-md px-5 py-5">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-lg font-bold text-foreground">Obiettivi</h3>
+        <h3 className="text-xl font-bold text-foreground">Obiettivi</h3>
         <span className="text-xs font-semibold" style={{ color: "hsl(var(--brand-blue))" }}>Oggi</span>
       </div>
-      <p className="text-[10px] text-muted-foreground mb-2">
+      <p className="text-xs text-muted-foreground mb-4">
         Rimanente = Obiettivo - Alimenti + Esercizi
       </p>
 

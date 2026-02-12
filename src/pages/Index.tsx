@@ -29,7 +29,7 @@ const Index = () => {
   return (
     <div className="mx-auto max-w-lg">
       <HomeHeader />
-      <div className="space-y-3 pb-4">
+      <div className="space-y-4 pb-4">
         {isLoading ? (
           <div className="flex h-48 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

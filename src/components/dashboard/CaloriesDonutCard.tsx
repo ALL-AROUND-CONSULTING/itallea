@@ -2,8 +2,8 @@ import { Card } from "@/components/ui/card";
 import type { DailyNutrition } from "@/hooks/useDailyNutrition";
 import { motion } from "framer-motion";
 
-const RADIUS = 55;
-const STROKE = 14;
+const RADIUS = 70;
+const STROKE = 16;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const CENTER = RADIUS + STROKE / 2;
 const SIZE = CENTER * 2;
@@ -33,16 +33,16 @@ export function CaloriesDonutCard({ data }: Props) {
   });
 
   return (
-    <Card className="border-0 shadow-md px-4 py-3">
+    <Card className="border-0 shadow-md px-5 py-5">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-lg font-bold text-foreground">Calorie</h3>
+        <h3 className="text-xl font-bold text-foreground">Calorie</h3>
         <span className="text-xs font-semibold" style={{ color: "hsl(var(--brand-blue))" }}>Oggi</span>
       </div>
-      <p className="text-[10px] text-muted-foreground mb-2">
+      <p className="text-xs text-muted-foreground mb-4">
         Rimanente = Obiettivo - Alimenti + Esercizi
       </p>
 
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex items-center justify-center gap-8">
         {/* Donut */}
         <div className="relative flex-shrink-0">
           <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
@@ -64,7 +64,7 @@ export function CaloriesDonutCard({ data }: Props) {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <motion.span
-              className="text-2xl font-bold text-foreground"
+              className="text-3xl font-bold text-foreground"
               key={remaining}
               initial={{ scale: 1.3, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -72,18 +72,18 @@ export function CaloriesDonutCard({ data }: Props) {
             >
               {remaining}
             </motion.span>
-            <span className="text-[10px] text-muted-foreground">rimanenti</span>
+            <span className="text-xs text-muted-foreground">rimanenti</span>
           </div>
         </div>
 
         {/* Right legend */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {arcs.map((a) => (
-            <div key={a.key} className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full" style={{ background: a.color }} />
+            <div key={a.key} className="flex items-center gap-2.5">
+              <div className="h-3.5 w-3.5 rounded-full" style={{ background: a.color }} />
               <div>
                 <p className="text-xs text-muted-foreground">{a.label}</p>
-                <p className="text-sm font-semibold text-foreground">{a.value}g</p>
+                <p className="text-base font-bold text-foreground">{a.value}</p>
               </div>
             </div>
           ))}
