@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { RecipeList } from "@/components/recipes/RecipeList";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,11 +62,21 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
-type View = "hub" | "recipes" | "products";
+type RecipeCategory = { label: string; icon: string };
+const RECIPE_CATEGORIES: RecipeCategory[] = [
+  { label: "Antipasti", icon: "🍢" },
+  { label: "Primi", icon: "🍝" },
+  { label: "Secondi", icon: "🥩" },
+  { label: "Contorni", icon: "🥗" },
+  { label: "Dolci", icon: "🧁" },
+];
+
+type View = "hub" | "recipes" | "products" | "recipe-category";
 
 const MyProducts = () => {
   const { user } = useAuth();
   const [view, setView] = useState<View>("hub");
+  const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | null>(null);
   const [products, setProducts] = useState<UserProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -189,7 +200,45 @@ const MyProducts = () => {
       )
     : products;
 
-  if (view !== "hub") {
+  if (view === "recipe-category" && selectedCategory) {
+    return (
+      <>
+        <div className="mx-auto max-w-lg">
+          <div
+            className="relative overflow-hidden pb-6"
+            style={{
+              background:
+                "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
+              borderRadius: "0 0 2rem 2rem",
+            }}
+          >
+            <div className="flex items-center justify-center gap-2 pt-10 pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+                <span className="text-base">🍽️</span>
+              </div>
+              <span className="text-xl font-bold tracking-wide" style={{ color: "hsl(var(--brand-dark-blue))" }}>
+                ITAL LEA
+              </span>
+            </div>
+            <div className="flex items-center justify-between px-5 pb-4">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setView("recipes"); setSelectedCategory(null); }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 shadow-sm"
+                >
+                  <ArrowLeft className="h-5 w-5 text-foreground" />
+                </button>
+                <h1 className="text-lg font-bold text-foreground">{selectedCategory.label}</h1>
+              </div>
+            </div>
+          </div>
+          <RecipeList category={selectedCategory.label} categoryIcon={selectedCategory.icon} />
+        </div>
+      </>
+    );
+  }
+
+  if (view !== "hub" && view !== "recipe-category") {
     return (
       <>
         <div className="mx-auto max-w-lg">
@@ -261,27 +310,17 @@ const MyProducts = () => {
           {view === "recipes" ? (
             <div className="px-4 pb-6 pt-2">
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "Antipasti", icon: "🍢" },
-                  { label: "Primi", icon: "🍝" },
-                  { label: "Secondi", icon: "🥩" },
-                  { label: "Contorni", icon: "🥗" },
-                  { label: "Dolci", icon: "🧁" },
-                  { label: "Aggiungi una nuova categoria", icon: "➕", isAdd: true },
-                ].map((cat) => (
+                {RECIPE_CATEGORIES.map((cat) => (
                   <Card
                     key={cat.label}
-                    className={cn(
-                      "flex cursor-pointer flex-col items-center justify-center gap-2 border-0 p-5 shadow-md transition-transform active:scale-95",
-                      cat.isAdd && "border border-dashed border-muted-foreground/30"
-                    )}
-                    onClick={() => toast.info(`"${cat.label}" - Prossimamente!`)}
+                    className="flex cursor-pointer flex-col items-center justify-center gap-2 border-0 p-5 shadow-md transition-transform active:scale-95"
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setView("recipe-category");
+                    }}
                   >
                     <span className="text-4xl">{cat.icon}</span>
-                    <p className={cn(
-                      "text-center text-sm font-semibold text-foreground",
-                      cat.isAdd && "text-xs text-muted-foreground font-medium"
-                    )}>
+                    <p className="text-center text-sm font-semibold text-foreground">
                       {cat.label}
                     </p>
                   </Card>
