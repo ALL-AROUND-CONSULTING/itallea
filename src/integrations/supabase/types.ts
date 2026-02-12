@@ -185,6 +185,7 @@ export type Database = {
           id: string
           last_name: string | null
           onboarding_completed: boolean
+          phone: string | null
           sex: string | null
           target_carbs: number | null
           target_fat: number | null
@@ -206,6 +207,7 @@ export type Database = {
           id: string
           last_name?: string | null
           onboarding_completed?: boolean
+          phone?: string | null
           sex?: string | null
           target_carbs?: number | null
           target_fat?: number | null
@@ -227,6 +229,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           onboarding_completed?: boolean
+          phone?: string | null
           sex?: string | null
           target_carbs?: number | null
           target_fat?: number | null
@@ -236,6 +239,30 @@ export type Database = {
           theme?: string
           updated_at?: string
           water_goal_ml?: number
+        }
+        Relationships: []
+      }
+      push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token?: string
+          user_id?: string
         }
         Relationships: []
       }

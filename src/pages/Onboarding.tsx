@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Camera, Loader2 } from "lucide-react";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario", desc: "Lavoro d'ufficio, poco movimento" },
@@ -24,6 +25,7 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 1
   const [firstName, setFirstName] = useState("");
@@ -39,12 +41,38 @@ const Onboarding = () => {
   // Step 3
   const [activityLevel, setActivityLevel] = useState("");
 
-  const totalSteps = 3;
+  // Step 4 - optional
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   const canProceedStep1 = firstName.trim() && lastName.trim() && dateOfBirth && sex;
   const canProceedStep2 = weight && height && targetWeight;
   const canProceedStep3 = activityLevel;
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+      toast.success("Foto caricata!");
+    } catch (err: any) {
+      toast.error("Errore upload: " + (err.message || "Riprova"));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleComplete = async () => {
     if (!user) return;
@@ -76,6 +104,8 @@ const Onboarding = () => {
         target_protein: macros.protein,
         target_carbs: macros.carbs,
         target_fat: macros.fat,
+        phone: phone.trim() || null,
+        avatar_url: avatarUrl,
         onboarding_completed: true,
       })
       .eq("id", user.id);
@@ -196,10 +226,65 @@ const Onboarding = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>Indietro</Button>
-                  <Button className="flex-1" disabled={!canProceedStep3 || submitting} onClick={handleComplete}>
+                  <Button className="flex-1" disabled={!canProceedStep3} onClick={() => setStep(4)}>Avanti</Button>
+                </div>
+              </CardContent>
+            </>
+          )}
+
+          {/* Step 4: Phone + Avatar (optional) */}
+          {step === 4 && (
+            <>
+              <CardHeader>
+                <CardTitle className="text-xl">📷 Foto & Contatto</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Avatar */}
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/30 bg-muted transition-colors hover:bg-muted/80"
+                  >
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : uploading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </button>
+                  <p className="text-xs text-muted-foreground">Tocca per aggiungere una foto profilo</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefono (opzionale)</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+39 333 1234567"
+                    maxLength={20}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>Indietro</Button>
+                  <Button className="flex-1" disabled={submitting} onClick={handleComplete}>
                     {submitting ? "Salvataggio…" : "Completa ✓"}
                   </Button>
                 </div>
+                <p className="text-center text-xs text-muted-foreground">
+                  Puoi saltare questi campi e aggiungerli dopo dal Profilo
+                </p>
               </CardContent>
             </>
           )}

@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield, QrCode, Unplug } from "lucide-react";
+import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield, QrCode, Unplug, Camera } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ACTIVITY_OPTIONS = [
@@ -39,6 +39,8 @@ type FullProfile = {
   target_carbs: number;
   target_fat: number;
   water_goal_ml: number;
+  phone: string | null;
+  avatar_url: string | null;
 };
 
 const Profile = () => {
@@ -55,6 +57,9 @@ const Profile = () => {
   const [pairedDevice, setPairedDevice] = useState<any>(null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairing, setPairing] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
   // Editable fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -65,12 +70,14 @@ const Profile = () => {
   const [targetWeight, setTargetWeight] = useState("");
   const [activityLevel, setActivityLevel] = useState("");
   const [waterGoal, setWaterGoal] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("first_name, last_name, date_of_birth, sex, current_weight, height, target_weight, activity_level, target_kcal, target_protein, target_carbs, target_fat, water_goal_ml")
+      .select("first_name, last_name, date_of_birth, sex, current_weight, height, target_weight, activity_level, target_kcal, target_protein, target_carbs, target_fat, water_goal_ml, phone, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -85,6 +92,8 @@ const Profile = () => {
           setTargetWeight(data.target_weight?.toString() ?? "");
           setActivityLevel(data.activity_level ?? "");
           setWaterGoal(data.water_goal_ml?.toString() ?? "2000");
+          setPhone(data.phone ?? "");
+          setAvatarUrl(data.avatar_url ?? null);
         }
         setLoading(false);
       });
@@ -136,6 +145,27 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const newUrl = urlData.publicUrl + "?t=" + Date.now();
+      setAvatarUrl(newUrl);
+      await supabase.from("profiles").update({ avatar_url: newUrl }).eq("id", user.id);
+      toast.success("Foto profilo aggiornata!");
+    } catch (err: any) {
+      toast.error("Errore upload: " + (err.message || "Riprova"));
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -168,6 +198,7 @@ const Profile = () => {
         target_carbs: macros.carbs,
         target_fat: macros.fat,
         water_goal_ml: parseInt(waterGoal) || 2000,
+        phone: phone.trim() || null,
       })
       .eq("id", user.id);
 
@@ -242,6 +273,24 @@ const Profile = () => {
     <>
       <PageHeader title="Profilo" showThemeToggle />
       <div className="mx-auto max-w-sm space-y-4 px-4 py-4">
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/30 bg-muted transition-colors hover:bg-muted/80"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : avatarUploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            ) : (
+              <Camera className="h-5 w-5 text-muted-foreground" />
+            )}
+          </button>
+          <p className="text-xs text-muted-foreground">Tocca per cambiare foto</p>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+        </div>
+
         {/* Personal data */}
         <Card>
           <CardHeader className="pb-3">
@@ -319,6 +368,10 @@ const Profile = () => {
             <div className="space-y-1">
               <Label className="text-xs">Obiettivo acqua (ml/giorno)</Label>
               <Input type="number" step="100" min="500" max="5000" value={waterGoal} onChange={(e) => setWaterGoal(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Telefono (opzionale)</Label>
+              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+39 333 1234567" maxLength={20} />
             </div>
           </CardContent>
         </Card>
