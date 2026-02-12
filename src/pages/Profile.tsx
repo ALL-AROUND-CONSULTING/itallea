@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
 import { useTheme } from "next-themes";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2 } from "lucide-react";
+import { LogOut, Moon, Scale, Download, Trash2, Package, Loader2, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ACTIVITY_OPTIONS = [
@@ -42,6 +43,7 @@ type FullProfile = {
 
 const Profile = () => {
   const { user, signOut, refreshProfile } = useAuth();
+  const { isAdmin } = useAdminCheck();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<FullProfile | null>(null);
@@ -319,6 +321,18 @@ const Profile = () => {
             onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
           />
         </div>
+
+        {/* Admin link */}
+        {isAdmin && (
+          <button
+            className="flex w-full items-center gap-3 rounded-lg border border-primary/30 bg-card p-3 text-sm text-primary font-medium"
+            onClick={() => navigate("/admin")}
+          >
+            <Shield className="h-4 w-4" />
+            <span>Pannello Admin</span>
+            <span className="ml-auto text-xs">→</span>
+          </button>
+        )}
 
         {/* Placeholder sections */}
         <div className="space-y-2">

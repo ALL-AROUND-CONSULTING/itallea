@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.admin-manage-users]
+verify_jwt = false
+
+[functions.admin-send-notification]
+verify_jwt = false
+
+[functions.admin-manage-products]
+verify_jwt = false
