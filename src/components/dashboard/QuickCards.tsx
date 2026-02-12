@@ -55,7 +55,7 @@ export function QuickCards() {
   return (
     <div className="mx-4 mb-2 mt-2 grid grid-cols-2 gap-3">
       {/* Hydration */}
-      <Card className="flex flex-col gap-1.5 border-0 p-3 shadow-md">
+      <Card className="flex cursor-pointer flex-col gap-1.5 border-0 p-3 shadow-md" onClick={() => navigate("/hydration")}>
         <p className="text-sm font-bold text-foreground">Idratazione</p>
 
         <div className="flex items-center gap-2">
