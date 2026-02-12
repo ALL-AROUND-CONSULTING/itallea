@@ -70,7 +70,7 @@ const VerifyEmail = () => {
       toast.error(error.message);
     } else {
       toast.success("Email verificata con successo!");
-      navigate("/");
+      navigate("/post-verify", { replace: true });
     }
     setSubmitting(false);
   };
