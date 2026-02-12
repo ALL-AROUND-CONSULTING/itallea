@@ -18,7 +18,7 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
           {navItems.map((item, idx) => {
             if ("type" in item && item.type === "fab") {
