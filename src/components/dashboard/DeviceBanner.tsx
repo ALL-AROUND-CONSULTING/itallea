@@ -3,6 +3,7 @@ import { ChevronRight, Scale, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 type Device = {
   id: string;
@@ -40,13 +41,16 @@ export function DeviceBanner() {
   if (!device) {
     return (
       <div className="mx-4 -mt-2 mb-4">
-        <button
+        <motion.button
           onClick={() => navigate("/profile")}
           className="w-full rounded-2xl p-4 shadow-sm text-left"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--brand-dark-blue)), hsl(var(--brand-blue)))",
           }}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -65,7 +69,7 @@ export function DeviceBanner() {
             </div>
             <WifiOff className="h-4 w-4 text-white/50" />
           </div>
-        </button>
+        </motion.button>
       </div>
     );
   }
@@ -95,7 +99,11 @@ export function DeviceBanner() {
               </p>
             </div>
           </div>
-          <div className="h-2.5 w-2.5 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
+          <motion.div
+            className="h-2.5 w-2.5 rounded-full bg-green-400 shadow-sm shadow-green-400/50"
+            animate={{ scale: [1, 1.3, 1] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          />
         </div>
       </div>
     </div>

@@ -107,12 +107,12 @@ export function WaterSlide() {
 
       {/* Quick-add preset buttons */}
       <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {WATER_PRESETS.map((preset) => (
+        {WATER_PRESETS.map((preset, i) => (
           <button
             key={preset.ml}
             onClick={() => handleAdd(preset.ml)}
             disabled={addGlass.isPending}
-            className="flex flex-col items-center gap-0.5 rounded-xl border bg-background px-3 py-2 text-center shadow-sm transition-transform active:scale-95 disabled:opacity-50"
+            className="flex flex-col items-center gap-0.5 rounded-xl border bg-background px-3 py-2 text-center shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
           >
             <span className="text-lg">{preset.icon}</span>
             <span className="text-[10px] font-semibold text-foreground">{preset.label}</span>

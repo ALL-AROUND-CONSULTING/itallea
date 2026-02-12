@@ -1,9 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Bluetooth } from "lucide-react";
+import { motion } from "framer-motion";
 
 export function HomeHeader() {
   const { profile } = useAuth();
   const firstName = profile?.first_name || "Utente";
+  const avatarUrl = profile?.avatar_url;
   const initials = (firstName[0] ?? "U").toUpperCase();
 
   return (
@@ -18,7 +20,12 @@ export function HomeHeader() {
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 pt-10 pb-6">
+        <motion.div
+          className="flex items-center justify-center gap-2 pt-10 pb-6"
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 shadow-sm">
             <span className="text-lg">🍽️</span>
           </div>
@@ -28,16 +35,25 @@ export function HomeHeader() {
           >
             ITAL LEA
           </span>
-        </div>
+        </motion.div>
 
         {/* Greeting row */}
-        <div className="flex items-center justify-between px-5 pb-2">
+        <motion.div
+          className="flex items-center justify-between px-5 pb-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, delay: 0.15, ease: "easeOut" }}
+        >
           <div className="flex items-center gap-3">
             <div
-              className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white shadow"
+              className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-sm font-bold text-white shadow"
               style={{ background: "hsl(var(--brand-blue))" }}
             >
-              {initials}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Bentornato</p>
@@ -46,13 +62,15 @@ export function HomeHeader() {
               </p>
             </div>
           </div>
-          <button
+          <motion.button
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 shadow-sm"
             aria-label="Dispositivo"
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08 }}
           >
             <Bluetooth className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     </div>
   );
