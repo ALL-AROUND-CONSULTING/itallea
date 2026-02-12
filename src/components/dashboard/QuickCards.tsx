@@ -55,7 +55,7 @@ export function QuickCards() {
   return (
     <div className="mx-4 mt-1 grid grid-cols-2 gap-3">
       {/* Hydration */}
-      <Card className="flex cursor-pointer flex-col gap-1.5 border-0 p-3 shadow-md" onClick={() => navigate("/hydration")}>
+      <Card className="flex cursor-pointer flex-col gap-2 border-0 p-4 shadow-md" onClick={() => navigate("/hydration")}>
         <p className="text-sm font-bold text-foreground">Idratazione</p>
 
         <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export function QuickCards() {
 
       {/* Database */}
       <Card
-        className="flex cursor-pointer flex-col gap-1.5 border-0 p-3 shadow-md"
+        className="flex cursor-pointer flex-col gap-2 border-0 p-4 shadow-md"
         onClick={() => navigate("/my-products")}
       >
         <div className="flex items-center gap-2">

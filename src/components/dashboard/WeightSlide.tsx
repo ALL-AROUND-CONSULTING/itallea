@@ -59,7 +59,7 @@ export function WeightSlide() {
   };
 
   return (
-    <Card className="border-0 shadow-md px-4 py-3">
+    <Card className="border-0 shadow-md px-5 py-5">
       {/* "Oggi" centered top */}
       <p className="text-center text-xs font-semibold mb-1" style={{ color: "hsl(var(--brand-blue))" }}>
         Oggi
