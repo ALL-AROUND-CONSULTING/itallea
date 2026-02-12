@@ -27,11 +27,11 @@ const Index = () => {
   const nutrition = data ?? defaultData;
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto flex max-w-lg flex-col" style={{ height: "calc(100dvh - 5rem)", overflow: "hidden" }}>
       <HomeHeader />
-      <div className="space-y-4 pb-4">
+      <div className="flex flex-1 flex-col justify-between gap-2 pb-2">
         {isLoading ? (
-          <div className="flex h-48 items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         ) : (

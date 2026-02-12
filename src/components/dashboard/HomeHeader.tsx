@@ -14,7 +14,7 @@ export function HomeHeader() {
   return (
     <div className="relative">
       <div
-        className="relative overflow-hidden pb-5"
+        className="relative overflow-hidden pb-3"
         style={{
           background:
             "linear-gradient(180deg, hsl(200 90% 92%) 0%, hsl(210 80% 85%) 60%, hsl(var(--background)) 100%)",
@@ -23,7 +23,7 @@ export function HomeHeader() {
       >
         {/* Logo */}
         <motion.div
-          className="flex items-center justify-center gap-2 pt-6 pb-3"
+          className="flex items-center justify-center gap-2 pt-4 pb-2"
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
