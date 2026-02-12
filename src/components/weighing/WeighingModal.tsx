@@ -114,6 +114,11 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
     onOpenChange(false);
   };
 
+  const handleAddCustomFood = () => {
+    resetAndClose();
+    navigate("/my-products");
+  };
+
   const handleScanBarcode = () => {
     resetAndClose();
     navigate("/scan");
@@ -227,7 +232,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
               {!searching && query.length >= 2 && results.length === 0 && (
                 <div className="flex flex-col items-center gap-4 py-8">
                   <p className="text-xs text-muted-foreground">0 risultati</p>
-                  <button className="flex items-center gap-3">
+                  <button className="flex items-center gap-3" onClick={handleAddCustomFood}>
                     <div
                       className="flex h-10 w-10 items-center justify-center rounded-full"
                       style={{ background: "hsl(var(--brand-blue))" }}
@@ -244,7 +249,7 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
               {!searching && query.length < 2 && (
                 <div className="flex flex-col items-center gap-4 py-8">
                   <p className="text-xs text-muted-foreground">0 risultati</p>
-                  <button className="flex items-center gap-3">
+                  <button className="flex items-center gap-3" onClick={handleAddCustomFood}>
                     <div
                       className="flex h-10 w-10 items-center justify-center rounded-full"
                       style={{ background: "hsl(var(--brand-blue))" }}
