@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      device_profiles: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          linked_user_id: string | null
+          name: string
+          profile_index: number
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          linked_user_id?: string | null
+          name?: string
+          profile_index?: number
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          linked_user_id?: string | null
+          name?: string
+          profile_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           hardware_device_id: string
@@ -487,6 +522,7 @@ export type Database = {
         Row: {
           carbs: number
           created_at: string
+          device_profile_id: string | null
           fat: number
           grams: number
           id: string
@@ -502,6 +538,7 @@ export type Database = {
         Insert: {
           carbs?: number
           created_at?: string
+          device_profile_id?: string | null
           fat?: number
           grams: number
           id?: string
@@ -517,6 +554,7 @@ export type Database = {
         Update: {
           carbs?: number
           created_at?: string
+          device_profile_id?: string | null
           fat?: number
           grams?: number
           id?: string
@@ -530,6 +568,13 @@ export type Database = {
           user_product_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "weighings_device_profile_id_fkey"
+            columns: ["device_profile_id"]
+            isOneToOne: false
+            referencedRelation: "device_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "weighings_product_id_fkey"
             columns: ["product_id"]

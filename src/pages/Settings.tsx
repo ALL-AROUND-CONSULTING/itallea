@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { useDeviceProfiles } from "@/hooks/useDeviceProfiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +21,7 @@ import {
   Unplug,
   Loader2,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -43,6 +45,7 @@ const Settings = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pairedDevice, setPairedDevice] = useState<any>(null);
+  const { profiles } = useDeviceProfiles(pairedDevice?.id ?? null);
   const [pairingCode, setPairingCode] = useState("");
   const [pairing, setPairing] = useState(false);
 
@@ -186,23 +189,34 @@ const Settings = () => {
 
         {/* Device pairing */}
         {pairedDevice ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-card p-4 shadow-sm">
-            <Scale className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--brand-blue))" }} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Bilancia collegata</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {pairedDevice.hardware_device_id}
-                {pairedDevice.serial_number && ` · S/N ${pairedDevice.serial_number}`}
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-card p-4 shadow-sm">
+              <Scale className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--brand-blue))" }} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Bilancia collegata</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {pairedDevice.hardware_device_id}
+                  {pairedDevice.serial_number && ` · S/N ${pairedDevice.serial_number}`}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-destructive"
+                onClick={handleUnpairDevice}
+              >
+                <Unplug className="h-4 w-4" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-destructive"
-              onClick={handleUnpairDevice}
+            <button
+              className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-sm font-medium shadow-sm"
+              onClick={() => navigate("/pair-device")}
             >
-              <Unplug className="h-4 w-4" />
-            </Button>
+              <Users className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
+              <span>Profili bilancia</span>
+              <span className="ml-auto text-xs text-muted-foreground">{profiles.length} profili</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
         ) : (
           <div className="space-y-2 rounded-2xl border bg-card p-4 shadow-sm">
