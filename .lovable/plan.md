@@ -1,94 +1,62 @@
 
+# Fix Peso, Idratazione e Spacing della Home
 
-# Ricostruzione Home Page + Navbar dal Design Figma
+## Problemi identificati
 
-## Correzioni rispetto al piano precedente
+### 1. WeightSlide (Peso) - Non fedele al mockup
+Dal mockup, la slide Peso deve avere:
+- "Oggi" blu centrato in alto (non a destra)
+- "Peso" in grassetto a sinistra, sotto "Oggi"
+- Riga stats: "Iniziale 100.00 kg", "Attuale 80.00 kg", "Variazione -20%" tutto sulla stessa riga senza sfondo/box grigio
+- Peso grande "80.00 kg" allineato a **sinistra** (non centrato), con "kg" in grigio accanto
+- Sparkline allineata a destra del peso (non sotto), formando una composizione peso+grafico sulla stessa riga
+- Pulsante "+ Inserisci peso" blu con icona + circolare blu a sinistra del testo, centrato in basso
 
-### 1. Header: Scanner, non Bluetooth
-L'icona in alto a destra nel design e uno **scanner** (barcode/QR), non un'icona Bluetooth. Verra sostituita con l'icona `ScanLine` da lucide-react e collegata alla pagina `/scan`.
+### 2. QuickCards Idratazione - Non fedele al mockup
+Dal mockup, la card Idratazione deve avere:
+- Titolo "Idratazione" in grassetto in alto a sinistra
+- Sotto: un'icona **corpo umano stilizzato** (persona con riempimento acqua blu nella parte bassa) a sinistra
+- A destra dell'icona: gocciolina blu + "1.500" in blu grande e grassetto
+- Sotto: "Obiettivo: 2500 ml" in grigio
+- Barra di progresso orizzontale blu in basso (piena, arrotondata)
+- Niente icona Droplets in un box colorato -- layout completamente diverso
 
-### 2. Bottom Nav: replica fedele dal mockup
-Dal mockup il navbar in basso mostra esattamente:
-- **Home** (icona casa, attiva = blu)
-- **Database** (icona database/griglia)
-- **+** (FAB centrale blu, rialzato)
-- **Impostazioni** (icona ingranaggio)
-- **Profilo** (icona utente)
+### 3. Spacing della Home
+Tutto deve stare in viewport senza scroll:
+- Ridurre padding/margin tra header, device banner, carousel, quick cards e navbar
+- Compattare l'altezza delle slide del carosello
+- Ridurre gap verticali generali
 
-Le etichette sono visibili sotto ogni icona. L'elemento attivo e evidenziato in blu brand. Il FAB centrale e un cerchio blu rialzato con icona `+` bianca. Non ci sono indicatori animati aggiuntivi (niente linea sotto l'icona attiva) -- stile pulito e minimale.
+## Modifiche tecniche
 
-### 3. Rimozione ActionBar
-L'ActionBar secondaria (scan/pesata/diario sopra la navbar) non esiste nel mockup. Verra rimossa dalla home e la sua funzionalita (scan, pesata) resta nel FAB e nel pulsante scanner dell'header.
+### `src/components/dashboard/WeightSlide.tsx`
+- Rimuovere il box grigio arrotondato attorno ai valori stats
+- Mettere "Oggi" centrato in alto in blu
+- Stats in riga semplice: "Iniziale X kg", "Attuale X kg", "Variazione X%" senza sfondo
+- Peso grande allineato a sinistra con sparkline SVG a destra sulla stessa riga
+- Pulsante "Inserisci peso" con icona + in cerchio blu + testo blu (non pulsante pieno bianco su blu)
+- Ridurre padding/margin interni per compattezza
 
-## Piano di Implementazione Completo
+### `src/components/dashboard/QuickCards.tsx`
+- Card Idratazione: rimuovere icona Droplets in box e il layout attuale
+- Aggiungere SVG persona stilizzata (body outline) con riempimento acqua nella parte bassa del corpo
+- Accanto: gocciolina SVG blu + valore ml in blu grande
+- Sotto: "Obiettivo: X ml" in grigio
+- Barra progresso blu in basso
+- Card Database: mantenere sostanzialmente come e
 
-### File da modificare/creare
+### `src/pages/Index.tsx`
+- Ridurre `py-4` a `py-2` e ottimizzare spacing
+- Ridurre margin delle sezioni
 
-| File | Azione |
-|------|--------|
-| `src/components/dashboard/HomeHeader.tsx` | Aggiornato - icona scanner al posto di Bluetooth, naviga a /scan |
-| `src/components/layout/BottomNav.tsx` | Riscritto - stile fedele al mockup, niente indicatore animato |
-| `src/components/layout/AppLayout.tsx` | Aggiornato - rimuovere ActionBar dalla home |
-| `src/components/dashboard/HomeCarousel.tsx` | Nuovo - wrapper Embla per 3 slide con dots |
-| `src/components/dashboard/GoalsSlide.tsx` | Riscritto - gauge semicircolare SVG |
-| `src/components/dashboard/CaloriesDonutCard.tsx` | Aggiornato - stile slide card |
-| `src/components/dashboard/WeightSlide.tsx` | Riscritto - sparkline + layout peso |
-| `src/components/dashboard/QuickCards.tsx` | Aggiornato - Idratazione + Database fedeli |
-| `src/components/dashboard/DeviceBanner.tsx` | Aggiornato - card "Aggiungi dispositivo" |
-| `src/pages/Index.tsx` | Aggiornato - integrazione carosello |
+### `src/components/dashboard/HomeHeader.tsx`
+- Ridurre padding top/bottom per guadagnare spazio verticale
 
-### Dettagli tecnici
+### `src/components/dashboard/DeviceBanner.tsx`
+- Ridurre margin bottom
 
-**HomeHeader.tsx**
-- Sostituire `Bluetooth` con `ScanLine` da lucide-react
-- onClick naviga a `/scan`
-- Resto del layout invariato (logo, avatar, saluto)
+### `src/components/dashboard/HomeCarousel.tsx`
+- Ridurre margin dots
 
-**BottomNav.tsx**
-- 5 elementi: Home, Database, FAB (+), Impostazioni, Profilo
-- Icone: `Home`, `Database`, `Plus`, `Settings`, `User` da lucide-react
-- FAB: cerchio blu brand rialzato (-mt-6), ombra, icona + bianca
-- Elemento attivo: colore blu brand (testo + icona), inattivi: grigio
-- Nessun indicatore a linea sotto l'icona (rimuovere `layoutId="nav-indicator"`)
-- Sfondo bianco solido con bordo superiore sottile
-
-**AppLayout.tsx**
-- Rimuovere il rendering condizionale di `ActionBar`
-- Mantenere solo `BottomNav`
-- Il padding bottom del main resta per compensare la navbar
-
-**HomeCarousel.tsx**
-- Usa `embla-carousel-react` (gia installato)
-- 3 slide: GoalsSlide, CaloriesDonutCard, WeightSlide
-- Dots indicatori sotto: 3 pallini, quello attivo e blu brand, gli altri grigi
-- Ogni slide e una card con bordi arrotondati, sfondo bianco, ombra leggera
-- Badge "Oggi" blu in alto a destra di ogni card
-
-**GoalsSlide.tsx**
-- Gauge semicircolare SVG custom
-- Arco con 3 zone colorate: grigio (sotto soglia), verde (obiettivo), rosso (sopra)
-- Lancetta nera che ruota in base a percentuale kcal consumate vs obiettivo
-- A destra del gauge: icona bandiera + "Obiettivo base [X]", icona fuoco + "Alimenti [X]"
-- Legenda in basso: 3 pallini con etichette (Sotto soglia, Nel tuo obiettivo, Sopra soglia)
-
-**CaloriesDonutCard.tsx (slide Calorie)**
-- Donut chart a sinistra (recharts PieChart)
-- A destra: 3 righe macro con pallino colorato + nome + valore
-  - Carboidrati (grigio), Proteine (blu), Grassi (arancione)
-- Sottotitolo "Rimanente = Obiettivo - Alimenti + Esercizi"
-
-**WeightSlide.tsx**
-- Riga superiore: Iniziale / Attuale / Variazione % (verde se negativo, rosso se positivo)
-- Peso grande centrato (es. "80.00 kg")
-- Mini sparkline SVG (polyline) con ultimi punti peso
-- Pulsante "+ Inserisci peso" blu pill-shaped in basso
-
-**QuickCards.tsx**
-- Due card affiancate con bordi arrotondati
-- **Idratazione**: icona goccia blu, valore attuale in ml, testo "Obiettivo: [X] ml", barra progresso orizzontale blu
-- **Il mio database**: icona piatto/forchetta, testo "Aggiungi ricetta o alimento", navigazione a /my-products
-
-**DeviceBanner.tsx**
-- Se nessun dispositivo: card con "Aggiungi dispositivo" + "Inizia il tuo viaggio con Ital Lea" + pulsante + blu
-- Se dispositivo connesso: card compatta con nome dispositivo e LED verde
-
+### `src/components/dashboard/GoalsSlide.tsx` e `CaloriesDonutCard.tsx`
+- Ridurre padding interni per compattezza
