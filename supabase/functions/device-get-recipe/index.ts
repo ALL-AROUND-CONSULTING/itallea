@@ -5,7 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Called by scale firmware — returns recipe nutrition by recipe_id
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: corsHeaders });
@@ -13,6 +12,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const deviceId = url.searchParams.get("device_id");
   const recipeId = url.searchParams.get("recipe_id");
+  const profileIndex = url.searchParams.get("profile_index");
 
   if (!deviceId || !recipeId) {
     return new Response(JSON.stringify({ error: "device_id and recipe_id required" }), { status: 400, headers: corsHeaders });
@@ -20,19 +20,30 @@ Deno.serve(async (req) => {
 
   const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  // Verify device
-  const { data: device } = await serviceClient.from("devices").select("user_id, is_active").eq("hardware_device_id", deviceId).maybeSingle();
+  const { data: device } = await serviceClient.from("devices").select("id, user_id, is_active").eq("hardware_device_id", deviceId).maybeSingle();
   if (!device || !device.is_active) {
     return new Response(JSON.stringify({ error: "Device not found or inactive" }), { status: 404, headers: corsHeaders });
   }
 
-  // Get recipe (must belong to user)
-  const { data: recipe } = await serviceClient.from("recipes").select("id, name, servings").eq("id", recipeId).eq("user_id", device.user_id).maybeSingle();
+  // Resolve target user via profile
+  let targetUserId = device.user_id;
+  if (profileIndex) {
+    const { data: profile } = await serviceClient
+      .from("device_profiles")
+      .select("linked_user_id")
+      .eq("device_id", device.id)
+      .eq("profile_index", parseInt(profileIndex))
+      .maybeSingle();
+    if (profile?.linked_user_id) {
+      targetUserId = profile.linked_user_id;
+    }
+  }
+
+  const { data: recipe } = await serviceClient.from("recipes").select("id, name, servings").eq("id", recipeId).eq("user_id", targetUserId).maybeSingle();
   if (!recipe) {
     return new Response(JSON.stringify({ error: "Recipe not found" }), { status: 404, headers: corsHeaders });
   }
 
-  // Get ingredients
   const { data: ingredients } = await serviceClient.from("recipe_ingredients").select("product_name, grams, kcal, protein, carbs, fat").eq("recipe_id", recipeId);
 
   const totals = (ingredients ?? []).reduce(

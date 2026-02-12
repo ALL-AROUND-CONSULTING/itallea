@@ -3,15 +3,159 @@ import { Html5Qrcode } from "html5-qrcode";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDeviceProfiles } from "@/hooks/useDeviceProfiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ChevronLeft, PenSquare, Loader2, QrCode, Scale, Unplug } from "lucide-react";
+import { ChevronLeft, PenSquare, Loader2, QrCode, Scale, Unplug, UserPlus, Trash2, Edit2, Check, X, Users } from "lucide-react";
 
 type Device = {
   id: string;
   hardware_device_id: string;
   serial_number: string | null;
+};
+
+const MAX_PROFILES = 5;
+
+const DeviceConnectedView = ({ device, onUnpair, unpairLoading, navigate }: {
+  device: Device;
+  onUnpair: () => void;
+  unpairLoading: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+}) => {
+  const { profiles, isLoading, addProfile, updateProfile, deleteProfile } = useDeviceProfiles(device.id);
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const handleAdd = () => {
+    const name = newName.trim();
+    if (!name) { toast.error("Inserisci un nome per il profilo"); return; }
+    if (profiles.length >= MAX_PROFILES) { toast.error(`Massimo ${MAX_PROFILES} profili`); return; }
+    const nextIndex = profiles.length > 0 ? Math.max(...profiles.map(p => p.profile_index)) + 1 : 1;
+    addProfile.mutate({ name, profileIndex: nextIndex }, {
+      onSuccess: () => { setNewName(""); toast.success("Profilo aggiunto"); },
+      onError: () => toast.error("Errore nell'aggiunta del profilo"),
+    });
+  };
+
+  const handleSaveEdit = (id: string) => {
+    const name = editName.trim();
+    if (!name) return;
+    updateProfile.mutate({ id, name }, {
+      onSuccess: () => { setEditingId(null); toast.success("Profilo aggiornato"); },
+      onError: () => toast.error("Errore nell'aggiornamento"),
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    deleteProfile.mutate(id, {
+      onSuccess: () => toast.success("Profilo eliminato"),
+      onError: () => toast.error("Errore nell'eliminazione"),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
+      <div className="flex items-center gap-3 px-4 pt-6 pb-4">
+        <button onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <h1 className="text-lg font-semibold text-foreground">Collega la tua bilancia</h1>
+      </div>
+
+      <div className="flex flex-col items-center gap-6 px-6 pb-10">
+        {/* Device info */}
+        <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ background: "hsl(var(--brand-blue) / 0.1)" }}>
+          <Scale className="h-10 w-10" style={{ color: "hsl(var(--brand-blue))" }} />
+        </div>
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold text-foreground">Hai già una bilancia collegata</p>
+          <p className="text-sm text-muted-foreground">
+            Dispositivo: {device.hardware_device_id}
+            {device.serial_number && ` · S/N ${device.serial_number}`}
+          </p>
+        </div>
+
+        {/* Profiles section */}
+        <div className="w-full max-w-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5" style={{ color: "hsl(var(--brand-blue))" }} />
+            <h2 className="text-sm font-semibold text-foreground">Profili bilancia</h2>
+            <span className="ml-auto text-xs text-muted-foreground">{profiles.length}/{MAX_PROFILES}</span>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <div className="space-y-2">
+              {profiles.map((p) => (
+                <div key={p.id} className="flex items-center gap-2 rounded-xl border bg-card p-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: "hsl(var(--brand-blue) / 0.15)", color: "hsl(var(--brand-blue))" }}>
+                    {p.profile_index}
+                  </span>
+                  {editingId === p.id ? (
+                    <>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="h-8 flex-1 text-sm"
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveEdit(p.id)}
+                        autoFocus
+                      />
+                      <button onClick={() => handleSaveEdit(p.id)} className="text-primary"><Check className="h-4 w-4" /></button>
+                      <button onClick={() => setEditingId(null)} className="text-muted-foreground"><X className="h-4 w-4" /></button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm font-medium">{p.name}</span>
+                      <button onClick={() => { setEditingId(p.id); setEditName(p.name); }} className="text-muted-foreground hover:text-foreground"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {profiles.length < MAX_PROFILES && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome nuovo profilo…"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                    className="h-9 text-sm"
+                  />
+                  <Button size="sm" className="h-9 shrink-0" onClick={handleAdd} disabled={addProfile.isPending}>
+                    {addProfile.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="w-full max-w-xs space-y-3 pt-2">
+          <Button
+            variant="destructive"
+            className="w-full rounded-xl"
+            onClick={onUnpair}
+            disabled={unpairLoading}
+          >
+            {unpairLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unplug className="mr-2 h-4 w-4" />}
+            Scollega dispositivo
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={() => navigate(-1)}
+          >
+            Torna indietro
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const PairDevice = () => {
@@ -214,47 +358,7 @@ const PairDevice = () => {
 
   // Existing device found
   if (existingDevice) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-background">
-        <div className="flex items-center gap-3 px-4 pt-6 pb-4">
-          <button onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-lg font-semibold text-foreground">Collega la tua bilancia</h1>
-        </div>
-
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ background: "hsl(var(--brand-blue) / 0.1)" }}>
-            <Scale className="h-10 w-10" style={{ color: "hsl(var(--brand-blue))" }} />
-          </div>
-          <div className="text-center space-y-2">
-            <p className="text-lg font-semibold text-foreground">Hai già una bilancia collegata</p>
-            <p className="text-sm text-muted-foreground">
-              Dispositivo: {existingDevice.hardware_device_id}
-              {existingDevice.serial_number && ` · S/N ${existingDevice.serial_number}`}
-            </p>
-          </div>
-          <div className="w-full max-w-xs space-y-3">
-            <Button
-              variant="destructive"
-              className="w-full rounded-xl"
-              onClick={handleUnpair}
-              disabled={unpairLoading}
-            >
-              {unpairLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unplug className="mr-2 h-4 w-4" />}
-              Scollega dispositivo
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full rounded-xl"
-              onClick={() => navigate(-1)}
-            >
-              Torna indietro
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <DeviceConnectedView device={existingDevice} onUnpair={handleUnpair} unpairLoading={unpairLoading} navigate={navigate} />;
   }
 
   // Pairing in progress
