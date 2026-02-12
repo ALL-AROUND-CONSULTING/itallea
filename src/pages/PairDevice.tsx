@@ -2,25 +2,54 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ChevronLeft, PenSquare, Loader2, QrCode } from "lucide-react";
+import { ChevronLeft, PenSquare, Loader2, QrCode, Scale, Unplug } from "lucide-react";
+
+type Device = {
+  id: string;
+  hardware_device_id: string;
+  serial_number: string | null;
+};
 
 const PairDevice = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [scanning, setScanning] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [pairing, setPairing] = useState(false);
+  const [existingDevice, setExistingDevice] = useState<Device | null>(null);
+  const [loadingDevice, setLoadingDevice] = useState(true);
+  const [unpairLoading, setUnpairLoading] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScannerRunning = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-start scanner on mount
+  // Check for existing device
   useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("devices")
+      .select("id, hardware_device_id, serial_number")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("paired_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        setExistingDevice(data as Device | null);
+        setLoadingDevice(false);
+      });
+  }, [user]);
+
+  // Auto-start scanner on mount (only if no existing device)
+  useEffect(() => {
+    if (loadingDevice || existingDevice) return;
     const timer = setTimeout(() => {
       if (!scanning && !showManual && !pairing) {
         startScanner();
@@ -28,7 +57,7 @@ const PairDevice = () => {
     }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadingDevice, existingDevice]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -155,6 +184,78 @@ const PairDevice = () => {
     setShowManual(false);
     pairDevice(code);
   };
+
+  const handleUnpair = async () => {
+    if (!existingDevice) return;
+    setUnpairLoading(true);
+    const res = await supabase.functions.invoke("pair-device", {
+      method: "DELETE",
+      body: { deviceId: existingDevice.id },
+    });
+    if (res.error) {
+      toast.error("Errore disconnessione");
+    } else {
+      toast.success("Dispositivo scollegato");
+      setExistingDevice(null);
+      // Start scanner after unpair
+      setTimeout(() => startScanner(), 300);
+    }
+    setUnpairLoading(false);
+  };
+
+  // Loading device check
+  if (loadingDevice) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "hsl(var(--brand-blue))" }} />
+      </div>
+    );
+  }
+
+  // Existing device found
+  if (existingDevice) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        <div className="flex items-center gap-3 px-4 pt-6 pb-4">
+          <button onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground">Collega la tua bilancia</h1>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ background: "hsl(var(--brand-blue) / 0.1)" }}>
+            <Scale className="h-10 w-10" style={{ color: "hsl(var(--brand-blue))" }} />
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-lg font-semibold text-foreground">Hai già una bilancia collegata</p>
+            <p className="text-sm text-muted-foreground">
+              Dispositivo: {existingDevice.hardware_device_id}
+              {existingDevice.serial_number && ` · S/N ${existingDevice.serial_number}`}
+            </p>
+          </div>
+          <div className="w-full max-w-xs space-y-3">
+            <Button
+              variant="destructive"
+              className="w-full rounded-xl"
+              onClick={handleUnpair}
+              disabled={unpairLoading}
+            >
+              {unpairLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unplug className="mr-2 h-4 w-4" />}
+              Scollega dispositivo
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={() => navigate(-1)}
+            >
+              Torna indietro
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Pairing in progress
   if (pairing) {
