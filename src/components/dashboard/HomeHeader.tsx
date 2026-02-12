@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import logoImg from "@/assets/logo-itallea.png";
 
 export function HomeHeader() {
   const { profile } = useAuth();
@@ -27,15 +28,7 @@ export function HomeHeader() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 shadow-sm">
-            <span className="text-lg">🍽️</span>
-          </div>
-          <span
-            className="text-2xl font-bold tracking-wide"
-            style={{ color: "hsl(var(--brand-dark-blue))" }}
-          >
-            ITAL LEA
-          </span>
+          <img src={logoImg} alt="Ital Lea" className="h-12" style={{ objectFit: "contain" }} />
         </motion.div>
 
         {/* Greeting row */}
