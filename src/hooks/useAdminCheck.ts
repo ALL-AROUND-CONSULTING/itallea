@@ -13,6 +13,14 @@ export function useAdminCheck() {
       setLoading(false);
       return;
     }
+
+    // Dev bypass: in development, every authenticated user is admin
+    if (import.meta.env.DEV) {
+      setIsAdmin(true);
+      setLoading(false);
+      return;
+    }
+
     supabase
       .from("user_roles")
       .select("role")
