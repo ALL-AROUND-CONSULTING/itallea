@@ -48,6 +48,12 @@ const Scan = () => {
   const [product, setProduct] = useState<ScannedProduct | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [lookupSource, setLookupSource] = useState("");
+  const [scannedBarcode, setScannedBarcode] = useState("");
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [registerData, setRegisterData] = useState({
+    name: "", brand: "", kcal: "", protein: "", carbs: "", fat: "", fiber: "", salt: "",
+  });
+  const [registering, setRegistering] = useState(false);
 
   const [grams, setGrams] = useState("");
   const [mealType, setMealType] = useState("lunch");
@@ -108,6 +114,8 @@ const Scan = () => {
     setProduct(null);
     setNotFound(false);
     setGrams("");
+    setScannedBarcode(code);
+    setShowRegisterForm(false);
 
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -262,8 +270,54 @@ const Scan = () => {
     setManualCode("");
     setLookupSource("");
     setShowManual(false);
+    setScannedBarcode("");
+    setShowRegisterForm(false);
+    setRegisterData({ name: "", brand: "", kcal: "", protein: "", carbs: "", fat: "", fiber: "", salt: "" });
     // Restart scanner
     setTimeout(() => startScanner(), 300);
+  };
+
+  const handleRegisterProduct = async () => {
+    if (!user || !registerData.name.trim()) {
+      toast.error("Il nome del prodotto è obbligatorio");
+      return;
+    }
+    setRegistering(true);
+    const { data, error } = await supabase.from("user_products").insert({
+      user_id: user.id,
+      name: registerData.name.trim(),
+      brand: registerData.brand.trim() || null,
+      barcode: scannedBarcode || null,
+      kcal_per_100g: parseFloat(registerData.kcal) || 0,
+      protein_per_100g: parseFloat(registerData.protein) || 0,
+      carbs_per_100g: parseFloat(registerData.carbs) || 0,
+      fat_per_100g: parseFloat(registerData.fat) || 0,
+      fiber_per_100g: parseFloat(registerData.fiber) || 0,
+      salt_per_100g: parseFloat(registerData.salt) || 0,
+    }).select().single();
+
+    if (error) {
+      toast.error("Errore nel salvataggio: " + error.message);
+    } else if (data) {
+      toast.success("Prodotto registrato!");
+      setProduct({
+        id: data.id,
+        name: data.name,
+        brand: data.brand,
+        barcode: data.barcode,
+        kcal_per_100g: Number(data.kcal_per_100g),
+        protein_per_100g: Number(data.protein_per_100g),
+        carbs_per_100g: Number(data.carbs_per_100g),
+        fat_per_100g: Number(data.fat_per_100g),
+        fiber_per_100g: Number(data.fiber_per_100g),
+        salt_per_100g: Number(data.salt_per_100g),
+        image_url: data.image_url,
+        source: "user",
+      });
+      setNotFound(false);
+      setShowRegisterForm(false);
+    }
+    setRegistering(false);
   };
 
   // ── Scanner view (no product yet) ──
@@ -379,15 +433,92 @@ const Scan = () => {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-background">
         <div className="flex items-center gap-3 border-b px-4 py-4">
-          <button onClick={() => { resetAll(); }}>
+          <button onClick={() => { if (showRegisterForm) { setShowRegisterForm(false); } else { resetAll(); } }}>
             <ChevronLeft className="h-5 w-5 text-foreground" />
           </button>
-          <span className="text-base font-semibold">Scanner</span>
+          <span className="text-base font-semibold">{showRegisterForm ? "Registra prodotto" : "Scanner"}</span>
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
-          <p className="text-center text-muted-foreground">Prodotto non trovato 😕</p>
-          <Button onClick={resetAll}>Scansiona un altro</Button>
-        </div>
+
+        {!showRegisterForm ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
+            <p className="text-center text-muted-foreground">Prodotto non trovato 😕</p>
+            {scannedBarcode && (
+              <p className="text-xs text-muted-foreground">Codice: {scannedBarcode}</p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={resetAll}>Scansiona altro</Button>
+              <Button onClick={() => setShowRegisterForm(true)}>Registra prodotto</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+            <div className="mx-auto w-full max-w-sm space-y-3">
+              {scannedBarcode && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Codice a barre</Label>
+                  <Input value={scannedBarcode} disabled className="rounded-xl bg-muted" />
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label className="text-xs">Nome prodotto *</Label>
+                <Input
+                  value={registerData.name}
+                  onChange={(e) => setRegisterData(d => ({ ...d, name: e.target.value }))}
+                  placeholder="Es. Pasta integrale"
+                  className="rounded-xl"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Brand</Label>
+                <Input
+                  value={registerData.brand}
+                  onChange={(e) => setRegisterData(d => ({ ...d, brand: e.target.value }))}
+                  placeholder="Es. Barilla"
+                  className="rounded-xl"
+                />
+              </div>
+
+              <p className="text-xs font-semibold text-muted-foreground pt-2">Valori per 100g</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["kcal", "Calorie (kcal)"],
+                  ["protein", "Proteine (g)"],
+                  ["carbs", "Carboidrati (g)"],
+                  ["fat", "Grassi (g)"],
+                  ["fiber", "Fibre (g)"],
+                  ["salt", "Sale (g)"],
+                ] as const).map(([key, label]) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px]">{label}</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={registerData[key]}
+                      onChange={(e) => setRegisterData(d => ({ ...d, [key]: e.target.value }))}
+                      placeholder="0"
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowRegisterForm(false)}>
+                  Annulla
+                </Button>
+                <Button
+                  className="flex-1 rounded-xl"
+                  disabled={!registerData.name.trim() || registering}
+                  onClick={handleRegisterProduct}
+                >
+                  {registering ? "Salvataggio…" : "Salva prodotto"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
