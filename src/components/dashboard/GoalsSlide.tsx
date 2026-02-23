@@ -10,7 +10,7 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
   const { totals, targets } = data;
   const pct = targets.kcal > 0 ? totals.kcal / targets.kcal : 0;
 
-  // Gauge: 180° arc from -90° to +90°
+  // Gauge: 180° semicircle from -180° to 0°
   const cx = 100;
   const cy = 90;
   const r = 70;
@@ -26,9 +26,10 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
     return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
   };
 
-  // Needle angle: 0% = -90° (left), 100% = 0° (center/top), >100% = up to 90° (right)
-  const clampedPct = Math.min(pct, 1.5);
-  const needleAngle = -90 + clampedPct * 90; // maps 0->-90, 1->0, 1.5->45
+  // Needle: 0% = -180° (full left), 100% ~= -25° (green zone), >110% enters red
+  const maxPct = 1.3;
+  const clampedPct = Math.min(pct, maxPct);
+  const needleAngle = -180 + clampedPct * (180 / maxPct);
   const needleRad = (needleAngle * Math.PI) / 180;
   const needleLen = r - 12;
   const nx = cx + needleLen * Math.cos(needleRad);
@@ -54,12 +55,12 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
         {/* Gauge */}
         <div className="flex-shrink-0">
           <svg width="200" height="110" viewBox="0 0 200 110">
-            {/* Gray zone (under target) -90° to -20° */}
-            <path d={arcPath(-180, -110)} fill="none" stroke="hsl(210, 15%, 80%)" strokeWidth="14" strokeLinecap="round" />
-            {/* Green zone (on target) -20° to 10° */}
-            <path d={arcPath(-110, -20)} fill="none" stroke="hsl(142, 55%, 45%)" strokeWidth="14" strokeLinecap="round" />
-            {/* Red zone (over target) 10° to 90° */}
-            <path d={arcPath(-20, 0)} fill="none" stroke="hsl(0, 72%, 51%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Gray zone: 0% – 75% of target */}
+            <path d={arcPath(-180, -46)} fill="none" stroke="hsl(210, 15%, 80%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Green zone: 75% – 110% of target */}
+            <path d={arcPath(-46, -12)} fill="none" stroke="hsl(142, 55%, 45%)" strokeWidth="14" strokeLinecap="round" />
+            {/* Red zone: >110% of target */}
+            <path d={arcPath(-12, 0)} fill="none" stroke="hsl(0, 72%, 51%)" strokeWidth="14" strokeLinecap="round" />
             {/* Needle */}
             <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="hsl(var(--foreground))" strokeWidth="2.5" strokeLinecap="round" />
             <circle cx={cx} cy={cy} r="4" fill="hsl(var(--foreground))" />
