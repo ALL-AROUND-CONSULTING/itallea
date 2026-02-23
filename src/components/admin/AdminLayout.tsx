@@ -1,6 +1,6 @@
 import { Outlet, NavLink, Navigate, useLocation } from "react-router-dom";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
-import { Users, Bell, Package, ArrowLeft, LayoutDashboard } from "lucide-react";
+import { Users, Bell, Package, ArrowLeft, LayoutDashboard, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/admin/users", label: "Utenti", icon: Users },
   { to: "/admin/products", label: "Alimenti", icon: Package },
   { to: "/admin/notifications", label: "Notifiche", icon: Bell },
+  { to: "/admin/endpoints", label: "Endpoints", icon: Server },
 ];
 
 export default function AdminLayout() {

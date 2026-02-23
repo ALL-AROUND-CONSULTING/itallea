@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
+import { OfflineBanner } from "./OfflineBanner";
 import { motion, AnimatePresence } from "framer-motion";
 
 const pageVariants = {
@@ -13,6 +14,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
+      <OfflineBanner />
       <main className="flex-1 overflow-y-auto pb-20">
         <AnimatePresence mode="wait">
           <motion.div

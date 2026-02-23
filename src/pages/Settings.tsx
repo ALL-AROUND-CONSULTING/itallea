@@ -190,24 +190,19 @@ const Settings = () => {
         {/* Device pairing */}
         {pairedDevice ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-card p-4 shadow-sm">
+            <button
+              className="flex w-full items-center gap-3 rounded-2xl border border-primary/30 bg-card p-4 shadow-sm"
+              onClick={() => navigate("/device")}
+            >
               <Scale className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--brand-blue))" }} />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 text-left">
                 <p className="text-sm font-medium">Bilancia collegata</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {pairedDevice.hardware_device_id}
-                  {pairedDevice.serial_number && ` · S/N ${pairedDevice.serial_number}`}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 text-destructive"
-                onClick={handleUnpairDevice}
-              >
-                <Unplug className="h-4 w-4" />
-              </Button>
-            </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
             <button
               className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-sm font-medium shadow-sm"
               onClick={() => navigate("/pair-device")}
