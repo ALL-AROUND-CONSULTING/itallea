@@ -73,7 +73,7 @@ export function DeviceBanner() {
       <div className="mx-4 mb-0 mt-0">
         {/* Badge gradient */}
         <button
-          onClick={() => navigate("/pair-device")}
+          onClick={() => navigate("/device")}
           className="mb-2 flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-bold text-white shadow-sm"
           style={{
             background: "linear-gradient(135deg, hsl(var(--brand-blue)), hsl(200, 80%, 65%))",
@@ -89,7 +89,7 @@ export function DeviceBanner() {
           style={{
             background: "linear-gradient(135deg, hsl(210 60% 97%), hsl(200 70% 94%))",
           }}
-          onClick={() => navigate("/pair-device")}
+          onClick={() => navigate("/device")}
         >
           {/* Text content */}
           <div className="flex-1 min-w-0 z-10">
