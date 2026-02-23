@@ -28,8 +28,26 @@ import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminEndpoints from "./pages/admin/AdminEndpoints";
+import DeviceManager from "./pages/DeviceManager";
 import Hydration from "./pages/Hydration";
-const queryClient = new QueryClient();
+import { toast } from "sonner";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    },
+    mutations: {
+      onError: (error: any) => {
+        if (!navigator.onLine) {
+          toast.error("Connessione assente. Riprova quando sei online.");
+        }
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -65,6 +83,7 @@ const App = () => (
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/notifications" element={<AdminNotifications />} />
                 <Route path="/admin/products" element={<AdminProducts />} />
+                <Route path="/admin/endpoints" element={<AdminEndpoints />} />
               </Route>
 
               {/* Protected routes with layout */}
@@ -82,6 +101,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/my-products" element={<MyProducts />} />
                 <Route path="/hydration" element={<Hydration />} />
+                <Route path="/device" element={<DeviceManager />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
 

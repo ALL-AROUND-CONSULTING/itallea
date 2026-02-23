@@ -56,11 +56,11 @@ export function GoalsSlide({ data }: GoalsSlideProps) {
         <div className="flex-shrink-0">
           <svg width="200" height="110" viewBox="0 0 200 110">
             {/* Gray zone: 0% – 75% of target */}
-            <path d={arcPath(-180, -46)} fill="none" stroke="hsl(210, 15%, 80%)" strokeWidth="14" strokeLinecap="round" />
+            <path d={arcPath(-180, -76)} fill="none" stroke="hsl(210, 15%, 80%)" strokeWidth="14" strokeLinecap="round" />
             {/* Green zone: 75% – 110% of target */}
-            <path d={arcPath(-46, -12)} fill="none" stroke="hsl(142, 55%, 45%)" strokeWidth="14" strokeLinecap="round" />
+            <path d={arcPath(-76, -28)} fill="none" stroke="hsl(142, 55%, 45%)" strokeWidth="14" strokeLinecap="round" />
             {/* Red zone: >110% of target */}
-            <path d={arcPath(-12, 0)} fill="none" stroke="hsl(0, 72%, 51%)" strokeWidth="14" strokeLinecap="round" />
+            <path d={arcPath(-28, 0)} fill="none" stroke="hsl(0, 72%, 51%)" strokeWidth="14" strokeLinecap="round" />
             {/* Needle */}
             <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="hsl(var(--foreground))" strokeWidth="2.5" strokeLinecap="round" />
             <circle cx={cx} cy={cy} r="4" fill="hsl(var(--foreground))" />
