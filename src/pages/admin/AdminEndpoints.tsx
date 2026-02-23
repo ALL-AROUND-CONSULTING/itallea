@@ -10,8 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, RefreshCw } from "lucide-react";
+import { Download, Loader2, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+
+const API_DOC = `/docs/API-Endpoints.md`;
 
 interface Endpoint {
   name: string;
@@ -115,14 +117,29 @@ export default function AdminEndpoints() {
           <h2 className="text-lg font-bold">Endpoints</h2>
           <p className="text-sm text-muted-foreground">{endpoints.length} funzioni configurate</p>
         </div>
-        <Button onClick={testAll} disabled={testingAll} size="sm">
-          {testingAll ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          Testa tutti
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const link = document.createElement("a");
+              link.href = API_DOC;
+              link.download = "API-Endpoints.md";
+              link.click();
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Scarica doc
+          </Button>
+          <Button onClick={testAll} disabled={testingAll} size="sm">
+            {testingAll ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Testa tutti
+          </Button>
+        </div>
       </div>
 
       <Card>
