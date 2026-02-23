@@ -1,59 +1,41 @@
 
 
-## Punto 1: Fix Lancetta Gauge + Punto 5: Prodotto non trovato -> Registrazione
+## Ricalcolo automatico dei target nutrizionali nel Profilo
+
+### Analisi del documento e dello stato attuale
+
+Ho analizzato il PDF "Relazione Ital Lea" e il codice esistente. La formula Mifflin-St Jeor e la ripartizione macro 30/40/30 sono corrette e conformi alle specifiche. Il calcolo TDEE nel codice e' allineato con quanto descritto nel documento.
+
+**Stato attuale di Profile.tsx**: il ricalcolo avviene solo quando l'utente preme "Salva e Ricalcola Target". La card "Target Giornalieri" mostra i valori salvati nel database, non quelli calcolati in tempo reale.
+
+**Problema**: l'utente non ha feedback immediato su come i cambiamenti di peso, altezza, sesso o attivita' influenzano i target. Deve salvare per vedere il risultato.
 
 ---
 
-### 1. Fix Lancetta del Gauge (GoalsSlide)
+### Cosa cambia
 
-**Problema attuale**: La lancetta a 0% (nessuna caloria consumata) punta gia' nella zona verde. Questo perche' gli archi SVG e la formula della lancetta non sono allineati.
+1. **Anteprima live dei target**: la card "Target Giornalieri" mostrera' i valori ricalcolati in tempo reale ogni volta che l'utente modifica peso, altezza, data di nascita, sesso o livello di attivita'. Se i dati sono incompleti, la card mostra i valori attuali salvati nel profilo.
 
-**Situazione attuale nel codice**:
-- Arco grigio: da `-180deg` a `-110deg`
-- Arco verde: da `-110deg` a `-20deg`  
-- Arco rosso: da `-20deg` a `0deg`
-- Lancetta: `needleAngle = -90 + pct * 90` (quindi 0% = -90deg, che cade dentro il verde)
+2. **Indicatore di variazione**: sotto i nuovi target viene mostrato un indicatore che segnala se i target sono cambiati rispetto a quelli salvati (es. "Nuovi target calcolati" in colore brand, oppure nessun indicatore se non sono cambiati).
 
-**Fix**: Ricalcolare archi e lancetta in modo che:
-- L'arco totale va da `-180deg` a `0deg` (semicerchio completo)
-- Grigio: `-180deg` a `-50deg` (0% - 75% del target)
-- Verde: `-50deg` a `-10deg` (75% - 110% del target)
-- Rosso: `-10deg` a `0deg` (oltre 110%)
-- Lancetta: `needleAngle = -180 + clampedPct * 180` cosi' 0% parte tutto a sinistra (grigio), 100% e' nel verde, e oltre 110% entra nel rosso
-
-**File**: `src/components/dashboard/GoalsSlide.tsx`
-
----
-
-### 2. Prodotto non trovato -> Form di registrazione
-
-**Problema attuale**: Quando lo scanner non trova un prodotto, mostra solo "Prodotto non trovato" con un bottone per riscansionare. Il cliente vuole che l'utente possa registrare il prodotto mancante.
-
-**Soluzione**: Nella schermata "not found" di `Scan.tsx`, aggiungere un bottone "Registra prodotto" che mostra un form inline con:
-- Barcode (pre-compilato, non modificabile)
-- Nome prodotto (obbligatorio)
-- Brand (opzionale)
-- Valori nutrizionali per 100g: kcal, proteine, carboidrati, grassi, fibre, sale
-- Il salvataggio avviene nella tabella `user_products` (gia' esistente con RLS corretta)
-- Dopo il salvataggio, il prodotto viene caricato come se fosse stato trovato dallo scanner, permettendo all'utente di procedere con la pesata
-
-**File**: `src/pages/Scan.tsx`
-- Aggiunta stato `showRegisterForm` e `scannedBarcode` per conservare il barcode
-- Nuovo blocco UI nel caso `notFound` con il form di registrazione
-- Funzione `handleRegisterProduct` che inserisce in `user_products` e poi imposta il prodotto trovato
+3. **Validazione migliorata**: il pulsante "Salva" viene disabilitato se mancano i dati essenziali per il calcolo (peso, altezza). Un messaggio indica quali campi completare.
 
 ---
 
 ### Dettaglio tecnico
 
-**GoalsSlide.tsx** - Modifiche alla matematica:
-- Archi SVG ridisegnati per coprire il semicerchio `-180` a `0` gradi
-- Zone: grigio (0-75%), verde (75-110%), rosso (110%+)
-- Formula lancetta: `-180 + min(pct, 1.3) * (180 / 1.3)` con clamp a 130%
+**File: `src/pages/Profile.tsx`**
 
-**Scan.tsx** - Nuovo flusso "not found":
-- Conservare il barcode scansionato in uno stato dedicato
-- Mostrare due opzioni: "Scansiona altro" e "Registra prodotto"
-- Il form di registrazione include tutti i campi nutrizionali con validazione base
-- Inserimento in `user_products` con `user_id` dell'utente corrente
-- Dopo il salvataggio, il prodotto viene mappato nel formato `ScannedProduct` e mostrato nella vista di dettaglio per procedere con grammi e pasto
+- Aggiunta di un `useMemo` che ricalcola TDEE e macros dai valori correnti dei campi form (weight, height, dateOfBirth, sex, activityLevel)
+- La card "Target Giornalieri" usa i valori calcolati dal memo invece dei valori `profile.*` dal database
+- Se weight o height sono vuoti/invalidi, il memo ritorna i valori salvati nel profilo come fallback
+- Aggiunta di un confronto tra i valori calcolati e quelli salvati: se sono diversi, viene mostrato un badge "Nuovi target" sotto la card
+- Il pulsante "Salva" viene disabilitato se peso e altezza non sono compilati, con tooltip esplicativo
+
+**File: `src/lib/nutrition.ts`** - Nessuna modifica, la logica e' corretta:
+- Mifflin-St Jeor: maschio = 10*peso + 6.25*altezza - 5*eta + 5; femmina = stessa formula - 161
+- Moltiplicatori attivita: sedentary 1.2, light 1.375, moderate 1.55, active 1.725, very_active 1.9
+- Macro split: proteine 30% (÷4), carboidrati 40% (÷4), grassi 30% (÷9)
+
+**File: `supabase/functions/get-daily-nutrition/index.ts`** - Nessuna modifica, legge correttamente i target dal profilo con fallback
+
