@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Check, X, Plus, Loader2, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  Check, X, Plus, Loader2, Search, Package, Clock, CheckCircle2, XCircle,
+  ArrowUpDown, ChevronLeft, ChevronRight,
+} from "lucide-react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 
 type Submission = {
   id: string;
@@ -22,22 +27,16 @@ type Submission = {
   created_at: string;
 };
 
-type Product = {
-  id: string;
-  name: string;
-  barcode: string | null;
-  brand: string | null;
-  kcal_per_100g: number;
-  protein_per_100g: number;
-  carbs_per_100g: number;
-  fat_per_100g: number;
-};
+const PAGE_SIZE = 15;
 
 export default function AdminProducts() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [page, setPage] = useState(0);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // New product form
   const [name, setName] = useState("");
@@ -49,21 +48,7 @@ export default function AdminProducts() {
   const [fat, setFat] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [subRes, prodRes] = await Promise.all([
-      supabase.functions.invoke("admin-manage-products", { method: "GET", body: undefined, headers: {} }),
-      supabase.functions.invoke("admin-manage-products", { method: "GET", headers: { "x-type": "products" } }),
-    ]);
-    // The edge function uses query params, but invoke doesn't support them easily.
-    // We'll fetch both via the same function with different approaches.
-    // Actually let's just call it twice - the default returns submissions
-    setSubmissions(subRes.data ?? []);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    // Fetch submissions
     const load = async () => {
       setLoading(true);
       const res = await supabase.functions.invoke("admin-manage-products", { method: "GET" });
@@ -112,57 +97,195 @@ export default function AdminProducts() {
     setCreating(false);
   };
 
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    let result = submissions;
+    if (statusFilter !== "all") {
+      result = result.filter((s) => s.status === statusFilter);
+    }
+    if (q) {
+      result = result.filter(
+        (s) => s.name.toLowerCase().includes(q) || s.brand?.toLowerCase().includes(q) || s.barcode?.includes(q)
+      );
+    }
+    result = [...result].sort((a, b) => {
+      const cmp = a.created_at.localeCompare(b.created_at);
+      return sortDir === "desc" ? -cmp : cmp;
+    });
+    return result;
+  }, [submissions, search, statusFilter, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Stats
+  const pendingCount = submissions.filter((s) => s.status === "pending").length;
+  const approvedCount = submissions.filter((s) => s.status === "approved").length;
+  const rejectedCount = submissions.filter((s) => s.status === "rejected").length;
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    if (status === "approved") return <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"><CheckCircle2 className="h-3 w-3" />Approvato</span>;
+    if (status === "rejected") return <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"><XCircle className="h-3 w-3" />Rifiutato</span>;
+    return <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"><Clock className="h-3 w-3" />In attesa</span>;
+  };
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="space-y-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+              <Clock className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
+              <p className="text-xs text-muted-foreground">In attesa</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{approvedCount}</p>
+              <p className="text-xs text-muted-foreground">Approvati</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
+              <XCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{rejectedCount}</p>
+              <p className="text-xs text-muted-foreground">Rifiutati</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="submissions">
-        <TabsList className="w-full">
-          <TabsTrigger value="submissions" className="flex-1">Proposte</TabsTrigger>
-          <TabsTrigger value="create" className="flex-1">Nuovo Prodotto</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="submissions">Proposte</TabsTrigger>
+          <TabsTrigger value="create">Nuovo Prodotto</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="submissions" className="mt-4 space-y-2">
-          {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
-          ) : submissions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nessuna proposta.</p>
-          ) : (
-            submissions.map((s) => (
-              <Card key={s.id}>
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{s.name}</p>
-                      {s.brand && <p className="text-xs text-muted-foreground">{s.brand}</p>}
-                      {s.barcode && <p className="text-xs text-muted-foreground">EAN: {s.barcode}</p>}
-                      <p className="text-xs mt-1">
-                        {s.kcal_per_100g} kcal · P{s.protein_per_100g} · C{s.carbs_per_100g} · G{s.fat_per_100g}
-                      </p>
-                    </div>
-                    {s.status === "pending" ? (
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="icon" variant="ghost" className="text-primary h-8 w-8" onClick={() => handleAction(s.id, "approve")} disabled={actionId === s.id}>
-                          {actionId === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleAction(s.id, "reject")} disabled={actionId === s.id}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className={`text-xs shrink-0 ${s.status === "approved" ? "text-primary" : "text-destructive"}`}>
-                        {s.status === "approved" ? "✓ Approvato" : "✗ Rifiutato"}
-                      </span>
-                    )}
+        <TabsContent value="submissions" className="mt-4">
+          <Card>
+            <CardContent className="p-0">
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cerca nome, brand o barcode…"
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                    className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-8"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  {(["all", "pending", "approved", "rejected"] as const).map((s) => (
+                    <Button
+                      key={s}
+                      variant={statusFilter === s ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => { setStatusFilter(s); setPage(0); }}
+                    >
+                      {s === "all" ? "Tutti" : s === "pending" ? "In attesa" : s === "approved" ? "Approvati" : "Rifiutati"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Prodotto</TableHead>
+                        <TableHead className="hidden sm:table-cell">Brand</TableHead>
+                        <TableHead className="hidden md:table-cell">EAN</TableHead>
+                        <TableHead className="hidden lg:table-cell">Kcal</TableHead>
+                        <TableHead className="hidden lg:table-cell">P / C / G</TableHead>
+                        <TableHead>Stato</TableHead>
+                        <TableHead>
+                          <button className="flex items-center gap-1" onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}>
+                            Data <ArrowUpDown className="h-3 w-3" />
+                          </button>
+                        </TableHead>
+                        <TableHead className="text-right">Azioni</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paged.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nessuna proposta</TableCell>
+                        </TableRow>
+                      ) : (
+                        paged.map((s) => (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-medium">{s.name}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-muted-foreground">{s.brand ?? "—"}</TableCell>
+                            <TableCell className="hidden md:table-cell text-muted-foreground font-mono text-xs">{s.barcode ?? "—"}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{s.kcal_per_100g}</TableCell>
+                            <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                              {s.protein_per_100g} / {s.carbs_per_100g} / {s.fat_per_100g}
+                            </TableCell>
+                            <TableCell><StatusBadge status={s.status} /></TableCell>
+                            <TableCell className="text-muted-foreground text-xs">
+                              {new Date(s.created_at).toLocaleDateString("it-IT")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {s.status === "pending" ? (
+                                <div className="flex justify-end gap-1">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => handleAction(s.id, "approve")} disabled={actionId === s.id}>
+                                    {actionId === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(s.id, "reject")} disabled={actionId === s.id}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-xs text-muted-foreground">{filtered.length} risultati · Pagina {page + 1} di {totalPages}</p>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="create" className="mt-4">
-          <Card>
-            <CardContent className="space-y-3 p-4">
-              <h2 className="font-semibold text-sm">Nuovo prodotto globale</h2>
+          <Card className="max-w-lg">
+            <CardContent className="space-y-4 p-5">
+              <h2 className="font-semibold">Nuovo prodotto globale</h2>
               <div className="space-y-1">
                 <Label className="text-xs">Nome *</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome prodotto" />
