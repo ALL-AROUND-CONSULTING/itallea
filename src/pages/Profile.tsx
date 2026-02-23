@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Settings, Camera, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ACTIVITY_OPTIONS = [
   { value: "sedentary", label: "Sedentario" },
@@ -151,6 +153,26 @@ const Profile = () => {
   };
 
   const initials = ((firstName || "U")[0] ?? "U").toUpperCase();
+
+  const canCalculate = parseFloat(weight) > 0 && parseFloat(height) > 0;
+
+  const liveTargets = useMemo(() => {
+    const w = parseFloat(weight);
+    const h = parseFloat(height);
+    if (!w || !h || w <= 0 || h <= 0) {
+      return profile ? { kcal: profile.target_kcal, protein: profile.target_protein, carbs: profile.target_carbs, fat: profile.target_fat } : null;
+    }
+    const dob = dateOfBirth ? new Date(dateOfBirth) : null;
+    const age = dob ? calculateAge(dob) : 30;
+    const sexVal = sex === "male" || sex === "female" ? sex : "male";
+    const tdee = calculateTDEE({ sex: sexVal, weight: w, height: h, age, activityLevel: activityLevel || "moderate" });
+    return calculateMacros(tdee);
+  }, [weight, height, dateOfBirth, sex, activityLevel, profile]);
+
+  const targetsChanged = useMemo(() => {
+    if (!liveTargets || !profile) return false;
+    return liveTargets.kcal !== profile.target_kcal || liveTargets.protein !== profile.target_protein || liveTargets.carbs !== profile.target_carbs || liveTargets.fat !== profile.target_fat;
+  }, [liveTargets, profile]);
 
   if (loading) {
     return (
@@ -304,28 +326,33 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Current targets */}
-        {profile && (
+        {/* Current targets - live preview */}
+        {liveTargets && (
           <Card className="rounded-2xl shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">🎯 Target Giornalieri</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">🎯 Target Giornalieri</CardTitle>
+                {targetsChanged && (
+                  <Badge className="text-[10px]" style={{ background: "hsl(var(--brand-blue))" }}>Nuovi target</Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div>
-                  <div className="text-lg font-bold text-primary">{profile.target_kcal}</div>
+                  <div className="text-lg font-bold text-primary">{liveTargets.kcal}</div>
                   <div className="text-[10px] text-muted-foreground">kcal</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-chart-3">{profile.target_protein}g</div>
+                  <div className="text-lg font-bold text-chart-3">{liveTargets.protein}g</div>
                   <div className="text-[10px] text-muted-foreground">Proteine</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-accent">{profile.target_carbs}g</div>
+                  <div className="text-lg font-bold text-accent">{liveTargets.carbs}g</div>
                   <div className="text-[10px] text-muted-foreground">Carbo</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-chart-4">{profile.target_fat}g</div>
+                  <div className="text-lg font-bold text-chart-4">{liveTargets.fat}g</div>
                   <div className="text-[10px] text-muted-foreground">Grassi</div>
                 </div>
               </div>
@@ -333,14 +360,27 @@ const Profile = () => {
           </Card>
         )}
 
-        <Button
-          className="w-full rounded-2xl"
-          onClick={handleSave}
-          disabled={saving}
-          style={{ background: "hsl(var(--brand-blue))" }}
-        >
-          {saving ? "Salvataggio…" : "Salva e Ricalcola Target"}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Button
+                  className="w-full rounded-2xl"
+                  onClick={handleSave}
+                  disabled={saving || !canCalculate}
+                  style={{ background: "hsl(var(--brand-blue))" }}
+                >
+                  {saving ? "Salvataggio…" : "Salva e Ricalcola Target"}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!canCalculate && (
+              <TooltipContent>
+                <p>Inserisci peso e altezza per salvare</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </>
   );
