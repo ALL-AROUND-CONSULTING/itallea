@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  itallea:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: itallea-app
+    ports:
+      - "80:80"
+    restart: unless-stopped
