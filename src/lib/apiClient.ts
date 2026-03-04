@@ -1,10 +1,12 @@
 /**
  * Centralized HTTP client for the custom REST backend.
+ * - Routes all calls through the Supabase edge-function proxy to avoid CORS
  * - Auto-injects Authorization: Bearer <access_token>
  * - Intercepts 401 → attempts token refresh → retries original request once
  */
 
-const API_BASE_URL = "https://italea.test.b4web.biz";
+const PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/backend-proxy`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const TOKEN_KEY = "italea_access_token";
 const REFRESH_KEY = "italea_refresh_token";
@@ -38,6 +40,29 @@ export function isTokenExpired(): boolean {
   return Date.now() >= Number(exp);
 }
 
+// ── Low-level proxy call ───────────────────────────────────────
+
+async function proxyFetch(
+  path: string,
+  method: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>
+): Promise<Response> {
+  return fetch(PROXY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({
+      path,
+      method,
+      body,
+      headers: extraHeaders,
+    }),
+  });
+}
+
 // ── Refresh logic (singleton promise to avoid concurrent refreshes) ──
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -47,13 +72,9 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refresh) return false;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/oauth/token/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "refresh_token",
-        refresh_token: refresh,
-      }),
+    const res = await proxyFetch("/oauth/token/", "POST", {
+      grant_type: "refresh_token",
+      refresh_token: refresh,
     });
 
     if (!res.ok) {
@@ -82,7 +103,9 @@ async function ensureFreshToken(): Promise<boolean> {
 
 // ── Main fetch wrapper ─────────────────────────────────────────
 
-type ApiOptions = Omit<RequestInit, "headers"> & {
+type ApiOptions = {
+  method?: string;
+  body?: unknown;
   headers?: Record<string, string>;
   skipAuth?: boolean;
 };
@@ -91,10 +114,9 @@ export async function apiClient<T = any>(
   path: string,
   options: ApiOptions = {}
 ): Promise<T> {
-  const { skipAuth = false, headers: extraHeaders = {}, ...fetchOpts } = options;
+  const { skipAuth = false, headers: extraHeaders = {}, method = "GET", body } = options;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+  const upstreamHeaders: Record<string, string> = {
     ...extraHeaders,
   };
 
@@ -102,30 +124,27 @@ export async function apiClient<T = any>(
     await ensureFreshToken();
     const token = getAccessToken();
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      upstreamHeaders["Authorization"] = `Bearer ${token}`;
     }
   }
 
-  const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
-
-  let res = await fetch(url, { ...fetchOpts, headers });
+  let res = await proxyFetch(path, method, body, upstreamHeaders);
 
   // If 401, try refresh once and retry
   if (res.status === 401 && !skipAuth) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      headers["Authorization"] = `Bearer ${getAccessToken()}`;
-      res = await fetch(url, { ...fetchOpts, headers });
+      upstreamHeaders["Authorization"] = `Bearer ${getAccessToken()}`;
+      res = await proxyFetch(path, method, body, upstreamHeaders);
     } else {
-      // Force logout — dispatch a custom event so AuthContext can react
       window.dispatchEvent(new Event("auth:logout"));
       throw new Error("Unauthenticated");
     }
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || body.error || `HTTP ${res.status}`);
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(errBody.message || errBody.error || `HTTP ${res.status}`);
   }
 
   return res.json();

@@ -1,31 +1,28 @@
 /**
  * Auth service — handles login / logout / token persistence
- * against the software house's OAuth2 endpoint.
+ * against the software house's OAuth2 endpoint via the proxy.
  */
 
-import { setTokens, clearTokens, getAccessToken } from "./apiClient";
+import { setTokens, clearTokens, getAccessToken, apiClient } from "./apiClient";
 
-const API_BASE_URL = "https://italea.test.b4web.biz";
-
-export type LoginResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type LoginResult = { ok: true } | { ok: false; error: string };
 
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
-    const res = await fetch(`${API_BASE_URL}/oauth/token/`, {
+    const data = await apiClient<{
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+      error?: string;
+      error_description?: string;
+    }>("/oauth/token/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: { username, password },
+      skipAuth: true,
     });
 
-    const data = await res.json();
-
-    if (!res.ok || data.error) {
-      return {
-        ok: false,
-        error: data.error_description || data.error || "Credenziali non valide",
-      };
+    if (data.error) {
+      return { ok: false, error: data.error_description || data.error || "Credenziali non valide" };
     }
 
     setTokens(data.access_token, data.refresh_token, data.expires_in);
