@@ -121,7 +121,7 @@ const Scan = () => {
     try {
       const data = await apiClient(`/api/lookup-barcode/`, {
         method: "POST",
-        body: JSON.stringify({ barcode: code }),
+        body: { barcode: code },
       });
 
       if (data.found && data.product) {
