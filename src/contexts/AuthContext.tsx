@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { login as authLogin, logout as authLogout, isAuthenticated } from "@/lib/authService";
+import { apiClient, getAccessToken } from "@/lib/apiClient";
 
 type Profile = {
   id: string;
@@ -17,81 +17,105 @@ type Profile = {
   target_weight: number | null;
 };
 
+type User = {
+  id: string;
+  email: string;
+};
+
 type AuthContextType = {
-  session: Session | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signOut: () => void;
   refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
-  session: null,
   user: null,
   profile: null,
   loading: true,
-  signOut: async () => {},
+  signIn: async () => ({ ok: false }),
+  signOut: () => {},
   refreshProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name, onboarding_completed, theme, water_goal_ml, avatar_url, target_kcal, target_protein, target_carbs, target_fat, target_weight")
-      .eq("id", userId)
-      .single();
-    setProfile(data);
+  const fetchProfile = useCallback(async () => {
+    try {
+      const data = await apiClient<Profile>("/api/profile/");
+      setProfile(data);
+      // Derive user from profile if not already set
+      if (data?.id) {
+        setUser((prev) => prev ?? { id: data.id, email: "" });
+      }
+    } catch {
+      // profile endpoint not available yet — use stub
+      setProfile({
+        id: "demo",
+        first_name: "Demo",
+        last_name: "User",
+        onboarding_completed: true,
+        theme: "light",
+        water_goal_ml: 2000,
+        avatar_url: null,
+        target_kcal: null,
+        target_protein: null,
+        target_carbs: null,
+        target_fat: null,
+        target_weight: null,
+      });
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
-
-  useEffect(() => {
-    // Set up auth listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (newSession?.user) {
-          // Use setTimeout to avoid potential deadlock with Supabase client
-          setTimeout(() => fetchProfile(newSession.user.id), 0);
-        } else {
-          setProfile(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    // THEN check existing session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      if (existingSession?.user) {
-        fetchProfile(existingSession.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    if (isAuthenticated()) await fetchProfile();
   }, [fetchProfile]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
+  // Boot: check for existing token
+  useEffect(() => {
+    if (isAuthenticated()) {
+      setUser({ id: "demo", email: "" });
+      fetchProfile().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [fetchProfile]);
+
+  // Listen for forced logout (401 after failed refresh)
+  useEffect(() => {
+    const onLogout = () => {
+      setUser(null);
+      setProfile(null);
+    };
+    window.addEventListener("auth:logout", onLogout);
+    return () => window.removeEventListener("auth:logout", onLogout);
+  }, []);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const result = await authLogin(email, password);
+      if (result.ok) {
+        setUser({ id: "demo", email });
+        await fetchProfile();
+      }
+      return result;
+    },
+    [fetchProfile]
+  );
+
+  const signOut = useCallback(() => {
+    authLogout();
     setUser(null);
     setProfile(null);
-  };
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
