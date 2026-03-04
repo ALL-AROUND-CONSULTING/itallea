@@ -118,25 +118,10 @@ const Scan = () => {
     setShowRegisterForm(false);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-      if (!token) {
-        toast.error("Devi essere autenticato");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lookup-barcode?code=${encodeURIComponent(code)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
-      );
-
-      const data = await res.json();
+      const data = await apiClient(`/api/lookup-barcode/`, {
+        method: "POST",
+        body: JSON.stringify({ barcode: code }),
+      });
 
       if (data.found && data.product) {
         setProduct({
