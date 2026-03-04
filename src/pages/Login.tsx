@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLogo } from "@/components/auth/AuthLogo";
 import { AuthInput } from "@/components/auth/AuthInput";
-import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,9 +25,9 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(error.message);
+    const result = await signIn(email, password);
+    if (!result.ok) {
+      toast.error(result.error || "Credenziali non valide");
     }
     setSubmitting(false);
   };
@@ -78,8 +76,6 @@ const Login = () => {
           >
             {submitting ? "Accesso…" : "Login"}
           </button>
-
-          <SocialLoginButtons />
 
           <p className="text-center text-sm text-muted-foreground">
             Non hai un account?{" "}
