@@ -1,99 +1,85 @@
 
 
-## Fix completo dei punti 1, 4, 5, 6 e 7
+## Analisi della Richiesta della Software House
+
+La software house chiede essenzialmente di **sganciare completamente l'app da Supabase** per autenticazione e chiamate API, sostituendoli con i loro endpoint REST. Analizziamo punto per punto.
 
 ---
 
-### Punto 1 -- Ricalibrazione lancetta gauge
+### Cosa chiedono
 
-**Problema**: Le zone colorate dell'arco e la formula della lancetta non sono allineate. L'arco totale va da -180deg a 0deg (180deg) e rappresenta 0-130% del target (maxPct=1.3). Ma le zone attuali usano angoli fissi (-46deg e -12deg) che non corrispondono ai confini 75% e 110%.
-
-Calcolo corretto con maxPct=1.3:
-- Grigia (0-75%): da -180deg a -180 + (0.75/1.3)*180 = **-76.2deg**
-- Verde (75-110%): da -76.2deg a -180 + (1.1/1.3)*180 = **-27.7deg**
-- Rossa (110-130%): da -27.7deg a 0deg
-
-**File**: `src/components/dashboard/GoalsSlide.tsx`
-- Sostituire gli angoli hardcoded delle tre zone con i valori calcolati: `arcPath(-180, -76)`, `arcPath(-76, -28)`, `arcPath(-28, 0)`
-- La formula della lancetta resta invariata (gia' corretta)
+1. **Login custom** via `POST /oauth/token/` che ritorna `access_token` + `refresh_token`
+2. **API calls** verso i loro endpoint (es. `/api/lookup-barcode/`) con `Authorization: Bearer <token>`
+3. **Meccanismo di refresh token** automatico quando l'access token scade
 
 ---
 
-### Punto 4 -- Pagina gestione bilancia
+### Stato attuale dell'app e dipendenza da Supabase
 
-**Stato attuale**: PairDevice.tsx gestisce pairing/unpairing e profili. Settings.tsx ha una sezione minimale. Manca una vista di monitoraggio con storico pesate dalla bilancia.
+L'app ha un legame **profondo** con Supabase in due aree:
 
-**File nuovo**: `src/pages/DeviceManager.tsx`
-- Sezione stato dispositivo (connesso/disconnesso, ultimo invio dati, hardware ID)
-- Lista ultime pesate ricevute dal dispositivo (query su `weighings` dove `device_profile_id` non e' null)
-- Link rapido a gestione profili (navigazione a PairDevice)
-- Card riepilogativa con numero pesate oggi e ultima pesata
+**1. Autenticazione (9 file coinvolti)**
+- Login, Register, ForgotPassword, ResetPassword, VerifyEmail usano tutti `supabase.auth.*`
+- Il contesto `AuthContext` gestisce sessioni con `onAuthStateChange` e `getSession`
+- Google OAuth usa `@lovable.dev/cloud-auth-js` che chiama `supabase.auth.setSession`
 
-**File**: `src/App.tsx`
-- Aggiunta rotta `/device` dentro le rotte protette con layout
-
-**File**: `src/pages/Settings.tsx`
-- Il pulsante "Bilancia collegata" naviga a `/device` invece di mostrare solo info inline
+**2. Operazioni CRUD dirette sul database (7 file coinvolti)**
+- `supabase.from("weighings")`, `supabase.from("water_logs")`, `supabase.from("weight_logs")`, `supabase.from("profiles")`, `supabase.from("recipes")`, `supabase.from("user_products")`, ecc.
+- Edge functions chiamate via `fetch` verso `SUPABASE_URL/functions/v1/...`
 
 ---
 
-### Punto 5 -- Prodotti non trovati -> registrazione
+### Si può fare? Si, ma è un lavoro significativo
 
-**Stato attuale**: Gia' implementato! In Scan.tsx (righe 442-520) quando un barcode non viene trovato, c'e' gia' un bottone "Registra prodotto" che apre un form con barcode pre-compilato, campi nome/brand/valori nutrizionali per 100g, e salvataggio in `user_products`. Il prodotto registrato viene poi usato immediatamente per la pesata.
+La risposta è **sì, è fattibile**, ma richiede un refactor sostanziale. Ecco cosa serve:
 
-**Nessuna modifica necessaria** -- questo punto e' gia' completo.
+#### Fase 1 — Nuovo layer di autenticazione
+Creare un **AuthService** custom che:
+- Chiama `POST /oauth/token/` per il login
+- Salva `access_token` e `refresh_token` in `localStorage`
+- Gestisce il refresh automatico quando il token scade (intercettore HTTP)
+- Riscrive `AuthContext` per usare questo servizio invece di `supabase.auth`
 
----
+#### Fase 2 — Client HTTP centralizzato
+Creare un **apiClient** (wrapper su `fetch`) che:
+- Aggiunge automaticamente `Authorization: Bearer <token>` a ogni richiesta
+- Intercetta risposte 401 → tenta refresh → ripete la chiamata
+- Punta al base URL della software house (`https://italea.test.b4web.biz`)
 
-### Punto 6 -- Gestione assenza di rete
+#### Fase 3 — Sostituire tutte le chiamate Supabase
+- Ogni `supabase.from("tabella").insert/select/update/delete` deve diventare una chiamata REST al loro backend
+- Ogni `fetch` verso edge functions deve puntare ai nuovi endpoint
+- Servono **circa 15-20 endpoint** sul loro backend per coprire tutte le operazioni attuali
 
-**File nuovo**: `src/hooks/useNetworkStatus.ts`
-- Hook che monitora `navigator.onLine` e gli eventi `online`/`offline`
-- Espone `isOnline: boolean`
-
-**File nuovo**: `src/components/layout/OfflineBanner.tsx`
-- Banner sticky in alto che appare quando `isOnline === false`
-- Testo: "Connessione assente -- Alcune funzionalita' potrebbero non essere disponibili"
-- Colore warning (giallo/arancio), si nasconde automaticamente quando torna online con toast "Connessione ripristinata"
-
-**File**: `src/components/layout/AppLayout.tsx`
-- Aggiunta di `OfflineBanner` prima del contenuto principale
-
-**File**: `src/integrations/supabase/client.ts` -- NON modificabile, quindi il retry va gestito a livello di QueryClient.
-
-**File**: `src/App.tsx`
-- Configurazione `QueryClient` con `retry: 2` e `retryDelay` esponenziale come default per tutte le query
-- Aggiunta `onError` globale che mostra toast in caso di errore di rete
+#### Fase 4 — Rimuovere flussi non necessari
+- VerifyEmail, ForgotPassword, ResetPassword → dipendono da come la software house gestisce questi flussi
+- Google OAuth → va reimplementato con il loro sistema
 
 ---
 
-### Punto 7 -- Overview endpoints admin
+### Cosa consiglio di rispondere alla software house
 
-**File nuovo**: `src/pages/admin/AdminEndpoints.tsx`
-- Tabella con tutte le 14 edge functions elencate
-- Per ciascuna: nome, metodo, stato JWT (da config.toml), e un pulsante "Test" che fa un health-check (OPTIONS request)
-- Colonna stato: pallino verde/rosso in base alla risposta
-- Possibilita' di testare tutti in batch con un bottone "Testa tutti"
+La risposta breve è: **sì, possiamo farlo, ma serve un contratto API completo da parte loro.**
 
-**File**: `src/components/admin/AdminLayout.tsx`
-- Aggiunta voce di navigazione "Endpoints" con icona `Server`
+Quello che serve da loro prima di procedere:
 
-**File**: `src/App.tsx`
-- Aggiunta rotta `/admin/endpoints` dentro le rotte admin
+1. **Lista completa degli endpoint** che implementeranno (non solo login e lookup-barcode)
+2. **Formato di ogni request/response** per: weighings, water_logs, weight_logs, profiles, recipes, user_products, daily_nutrition, ecc.
+3. **Flusso di registrazione**: come funziona? C'è verifica email? Come si fa reset password?
+4. **Formato errori** standard (codici HTTP, struttura JSON degli errori)
+5. **Refresh token endpoint**: quale URL, quale formato
+
+Una volta che loro forniscono il contratto API completo, posso refactorizzare l'app per sganciare completamente Supabase e puntare ai loro servizi.
 
 ---
 
-### Riepilogo modifiche
+### Per la demo che chiedono (login + lookup-barcode)
 
-| Punto | File | Tipo |
-|-------|------|------|
-| 1 | GoalsSlide.tsx | Modifica (3 angoli) |
-| 4 | DeviceManager.tsx | Nuovo file |
-| 4 | App.tsx, Settings.tsx | Modifica |
-| 5 | -- | Gia' fatto |
-| 6 | useNetworkStatus.ts | Nuovo hook |
-| 6 | OfflineBanner.tsx | Nuovo componente |
-| 6 | AppLayout.tsx, App.tsx | Modifica |
-| 7 | AdminEndpoints.tsx | Nuovo file |
-| 7 | AdminLayout.tsx, App.tsx | Modifica |
+Posso creare una **versione demo** che:
+- Fa login verso `POST https://italea.test.b4web.biz/oauth/token/`
+- Salva il token in localStorage
+- Chiama `POST https://italea.test.b4web.biz/api/lookup-barcode/` con il Bearer token
+- Gestisce il refresh automatico
+
+Questo è fattibile in tempi brevi come proof of concept. Vuoi che proceda con questa demo?
 
