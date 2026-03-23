@@ -74,7 +74,10 @@ async function refreshAccessToken(): Promise<boolean> {
   try {
     const res = await proxyFetch("/oauth/token/", "POST", {
       grant_type: "refresh_token",
+      client_id: "PLACEHOLDER_CLIENT_ID",
+      client_secret: "PLACEHOLDER_CLIENT_SECRET",
       refresh_token: refresh,
+      scope: "*",
     });
 
     if (!res.ok) {
