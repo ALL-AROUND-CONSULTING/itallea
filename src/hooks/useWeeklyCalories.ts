@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, subDays } from "date-fns";
 
@@ -25,32 +25,35 @@ export function useWeeklyCalories() {
         dates.push(format(subDays(today, i), "yyyy-MM-dd"));
       }
 
-      const { data, error } = await supabase
-        .from("weighings")
-        .select("logged_at, kcal, protein, carbs, fat")
-        .eq("user_id", user!.id)
-        .gte("logged_at", dates[0])
-        .lte("logged_at", dates[6]);
+      const data = await apiClient<any>("/api/app/meals/summary/", {
+        method: "POST",
+        body: { start_date: dates[0], end_date: dates[6] },
+      });
 
-      if (error) throw error;
+      const days = Array.isArray(data) ? data : data.records ?? [];
 
       const byDay: Record<string, { kcal: number; protein: number; carbs: number; fat: number }> = {};
       for (const d of dates) {
         byDay[d] = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
       }
-      for (const row of data ?? []) {
-        const d = row.logged_at;
-        if (byDay[d]) {
-          byDay[d].kcal += Number(row.kcal);
-          byDay[d].protein += Number(row.protein);
-          byDay[d].carbs += Number(row.carbs);
-          byDay[d].fat += Number(row.fat);
+
+      for (const day of days) {
+        const d = day.date;
+        if (!byDay[d]) continue;
+        const meals = day.meals ?? {};
+        for (const items of Object.values(meals)) {
+          for (const item of (items as any[])) {
+            byDay[d].kcal += Number(item.kcal ?? 0);
+            byDay[d].protein += Number(item.protein ?? 0);
+            byDay[d].carbs += Number(item.carbs ?? 0);
+            byDay[d].fat += Number(item.fat ?? 0);
+          }
         }
       }
 
       return dates.map((d) => ({
         date: d,
-        label: format(new Date(d + "T00:00:00"), "EEE", { locale: undefined }),
+        label: format(new Date(d + "T00:00:00"), "EEE"),
         kcal: Math.round(byDay[d].kcal),
         protein: Math.round(byDay[d].protein),
         carbs: Math.round(byDay[d].carbs),

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, subDays } from "date-fns";
 import { it } from "date-fns/locale";
@@ -36,26 +36,32 @@ export function useRangeNutrition(range: RangeKey) {
         dates.push(format(subDays(today, i), "yyyy-MM-dd"));
       }
 
-      const { data, error } = await supabase
-        .from("weighings")
-        .select("logged_at, kcal, protein, carbs, fat")
-        .eq("user_id", user!.id)
-        .gte("logged_at", dates[0])
-        .lte("logged_at", dates[dates.length - 1]);
+      const startDate = dates[0];
+      const endDate = dates[dates.length - 1];
 
-      if (error) throw error;
+      const data = await apiClient<any>("/api/app/meals/summary/", {
+        method: "POST",
+        body: { start_date: startDate, end_date: endDate },
+      });
+
+      const apiDays = Array.isArray(data) ? data : data.records ?? [];
 
       const byDay: Record<string, { kcal: number; protein: number; carbs: number; fat: number }> = {};
       for (const d of dates) {
         byDay[d] = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
       }
-      for (const row of data ?? []) {
-        const d = row.logged_at;
-        if (byDay[d]) {
-          byDay[d].kcal += Number(row.kcal);
-          byDay[d].protein += Number(row.protein);
-          byDay[d].carbs += Number(row.carbs);
-          byDay[d].fat += Number(row.fat);
+
+      for (const day of apiDays) {
+        const d = day.date;
+        if (!byDay[d]) continue;
+        const meals = day.meals ?? {};
+        for (const items of Object.values(meals)) {
+          for (const item of (items as any[])) {
+            byDay[d].kcal += Number(item.kcal ?? 0);
+            byDay[d].protein += Number(item.protein ?? 0);
+            byDay[d].carbs += Number(item.carbs ?? 0);
+            byDay[d].fat += Number(item.fat ?? 0);
+          }
         }
       }
 
