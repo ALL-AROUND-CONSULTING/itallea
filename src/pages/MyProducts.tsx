@@ -234,7 +234,6 @@ const MyProducts = () => {
     }
     setSaving(true);
     const payload = {
-      user_id: user.id,
       name: form.name.trim(),
       brand: form.brand.trim() || null,
       barcode: form.barcode.trim() || null,
@@ -245,22 +244,23 @@ const MyProducts = () => {
       fiber_per_100g: parseFloat(form.fiber_per_100g) || 0,
       salt_per_100g: parseFloat(form.salt_per_100g) || 0,
     };
-    let error;
-    if (editingId) {
-      ({ error } = await supabase
-        .from("user_products")
-        .update(payload)
-        .eq("id", editingId)
-        .eq("user_id", user.id));
-    } else {
-      ({ error } = await supabase.from("user_products").insert(payload));
-    }
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      if (editingId) {
+        await apiClient("/api/app/products/update/", {
+          method: "POST",
+          body: { product_id: editingId, ...payload },
+        });
+      } else {
+        await apiClient("/api/app/products/add/", {
+          method: "POST",
+          body: payload,
+        });
+      }
       toast.success(editingId ? "Prodotto aggiornato!" : "Prodotto creato!");
       setDialogOpen(false);
       fetchProducts();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   };
