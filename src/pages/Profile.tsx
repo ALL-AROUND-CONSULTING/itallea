@@ -64,12 +64,12 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("first_name, last_name, date_of_birth, sex, current_weight, height, target_weight, activity_level, target_kcal, target_protein, target_carbs, target_fat, water_goal_ml, phone, avatar_url")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
+    apiClient<any>("/api/app/vw_profiles/get/", {
+      method: "POST",
+      body: {},
+    })
+      .then((res) => {
+        const data = res.record ?? res;
         if (data) {
           setProfile(data as unknown as FullProfile);
           setFirstName(data.first_name ?? "");
@@ -85,7 +85,8 @@ const Profile = () => {
           setAvatarUrl(data.avatar_url ?? null);
         }
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
