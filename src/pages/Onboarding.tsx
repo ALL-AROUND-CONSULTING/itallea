@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
 import { toast } from "sonner";
@@ -54,15 +54,8 @@ const Onboarding = () => {
     if (!file || !user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
-      toast.success("Foto caricata!");
+      // Avatar upload not yet supported by external API — skip for now
+      toast.info("Il caricamento dell'avatar sarà disponibile a breve.");
     } catch (err: any) {
       toast.error("Errore upload: " + (err.message || "Riprova"));
     } finally {
@@ -86,29 +79,29 @@ const Onboarding = () => {
     });
     const macros = calculateMacros(tdee);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dateOfBirth || null,
-        sex: sex || null,
-        current_weight: parseFloat(weight),
-        height: parseFloat(height),
-        target_weight: targetWeight ? parseFloat(targetWeight) : null,
-        activity_level: activityLevel || null,
-        target_kcal: macros.kcal,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        phone: phone.trim() ? "+39" + phone.trim() : null,
-        avatar_url: avatarUrl,
-        onboarding_completed: true,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Errore nel salvataggio: " + error.message);
+    try {
+      await apiClient("/api/updateProfile/", {
+        method: "POST",
+        body: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          date_of_birth: dateOfBirth || null,
+          sex: sex || null,
+          current_weight: parseFloat(weight),
+          height: parseFloat(height),
+          target_weight: targetWeight ? parseFloat(targetWeight) : null,
+          activity_level: activityLevel || null,
+          target_kcal: macros.kcal,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          phone: phone.trim() ? "+39" + phone.trim() : null,
+          avatar_url: avatarUrl,
+          onboarding_completed: true,
+        },
+      });
+    } catch (err: any) {
+      toast.error("Errore nel salvataggio: " + (err.message || "Riprova"));
       setSubmitting(false);
       return;
     }
