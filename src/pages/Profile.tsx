@@ -125,31 +125,30 @@ const Profile = () => {
     });
     const macros = calculateMacros(tdee);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dateOfBirth,
-        sex,
-        current_weight: parseFloat(weight),
-        height: parseFloat(height),
-        target_weight: parseFloat(targetWeight),
-        activity_level: activityLevel,
-        target_kcal: macros.kcal,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        water_goal_ml: parseInt(waterGoal) || 2000,
-        phone: phone.trim() || null,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/updateProfile/", {
+        method: "POST",
+        body: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          date_of_birth: dateOfBirth,
+          sex,
+          current_weight: parseFloat(weight),
+          height: parseFloat(height),
+          target_weight: parseFloat(targetWeight),
+          activity_level: activityLevel,
+          target_kcal: macros.kcal,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          water_goal_ml: parseInt(waterGoal) || 2000,
+          phone: phone.trim() || null,
+        },
+      });
       toast.success("Profilo aggiornato! Target ricalcolati.");
       await refreshProfile();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   };

@@ -43,15 +43,15 @@ const Diary = () => {
   };
 
   const handleDelete = async (weighingId: string) => {
-    const { error } = await supabase
-      .from("weighings")
-      .delete()
-      .eq("id", weighingId);
-    if (error) {
-      toast.error("Errore durante l'eliminazione");
-    } else {
+    try {
+      await apiClient("/api/app/meals/delete/", {
+        method: "POST",
+        body: { meal_id: weighingId },
+      });
       toast.success("Pesata eliminata");
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition", dateStr] });
+    } catch (err: any) {
+      toast.error("Errore durante l'eliminazione");
     }
   };
 

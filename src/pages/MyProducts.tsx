@@ -267,16 +267,15 @@ const MyProducts = () => {
 
   const handleDelete = async () => {
     if (!deleteId || !user) return;
-    const { error } = await supabase
-      .from("user_products")
-      .delete()
-      .eq("id", deleteId)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/products/delete/", {
+        method: "POST",
+        body: { product_id: deleteId },
+      });
       toast.success("Prodotto eliminato");
       fetchProducts();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setDeleteId(null);
   };
