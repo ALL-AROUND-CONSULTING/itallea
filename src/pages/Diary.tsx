@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useDailyNutrition } from "@/hooks/useDailyNutrition";
 import { useWaterLog } from "@/hooks/useWaterLog";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
