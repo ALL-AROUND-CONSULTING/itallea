@@ -14,12 +14,12 @@ const ForgotPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await apiClient("/api/password/email", {
+        method: "POST",
+        body: { email },
+        skipAuth: true,
+      });
       setSent(true);
       toast.success("Email inviata! Controlla la tua casella di posta.");
     }
