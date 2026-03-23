@@ -22,6 +22,8 @@ const ForgotPassword = () => {
       });
       setSent(true);
       toast.success("Email inviata! Controlla la tua casella di posta.");
+    } catch (err: any) {
+      toast.error(err.message || "Errore nell'invio dell'email");
     }
     setSubmitting(false);
   };

@@ -28,9 +28,9 @@ export function useProductSearch(query: string) {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const data = await apiClient<any>("/api/app/products/search/", {
+        const data = await apiClient<any>("/api/app/products/get", {
           method: "POST",
-          body: { query },
+          body: { search: query },
         });
         const records = Array.isArray(data) ? data : data.records ?? [];
         const combined: SearchableProduct[] = records.map((p: any) => ({
