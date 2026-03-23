@@ -231,24 +231,25 @@ const Scan = () => {
     if (!user || !product || !preview) return;
     setSaving(true);
 
-    const { error } = await supabase.from("weighings").insert({
-      user_id: user.id,
-      product_id: product.id,
-      product_name: product.name,
-      grams: parseFloat(grams),
-      meal_type: mealType as "breakfast" | "lunch" | "dinner" | "snack",
-      kcal: preview.kcal,
-      protein: preview.protein,
-      carbs: preview.carbs,
-      fat: preview.fat,
-    });
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/meals/add/", {
+        method: "POST",
+        body: {
+          product_id: product.id,
+          product_name: product.name,
+          grams: parseFloat(grams),
+          meal_type: mealType,
+          kcal: preview.kcal,
+          protein: preview.protein,
+          carbs: preview.carbs,
+          fat: preview.fat,
+        },
+      });
       toast.success(`${product.name} aggiunto!`);
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition"] });
       resetAll();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   }, [user, product, preview, grams, mealType, queryClient]);
