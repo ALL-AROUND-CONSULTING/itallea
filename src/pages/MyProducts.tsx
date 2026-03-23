@@ -290,19 +290,28 @@ const MyProducts = () => {
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
+          resolve(result.split(",")[1]);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      const res = await supabase.functions.invoke("ocr-nutrition-label", {
-        method: "POST",
-        body: { image_base64: base64 },
-      });
-
-      if (res.error) throw res.error;
-      const n = res.data?.nutrition;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/ocr-nutrition-label`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: anonKey,
+          },
+          body: JSON.stringify({ image_base64: base64 }),
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const n = data?.nutrition;
       if (n) {
         setForm({
           name: n.name || form.name,
