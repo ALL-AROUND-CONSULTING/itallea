@@ -108,22 +108,26 @@ const MyProducts = () => {
 
   const fetchCustomCategories = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("user_recipe_categories")
-      .select("id, name, icon")
-      .eq("user_id", user.id)
-      .order("created_at");
-    setCustomCategories(
-      (data ?? []).map((c) => ({
-        id: c.id,
-        label: c.name,
-        icon: c.icon,
-        Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-          <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon}</span>
-        ),
-        isCustom: true,
-      }))
-    );
+    try {
+      const data = await apiClient<any>("/api/app/recipe_categories/get/", {
+        method: "POST",
+        body: {},
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      setCustomCategories(
+        records.map((c: any) => ({
+          id: c.id,
+          label: c.name,
+          icon: c.icon ?? "🍽️",
+          Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+            <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon ?? "🍽️"}</span>
+          ),
+          isCustom: true,
+        }))
+      );
+    } catch {
+      setCustomCategories([]);
+    }
   }, [user]);
 
   useEffect(() => {
