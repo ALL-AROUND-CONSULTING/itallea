@@ -118,22 +118,28 @@ const Scan = () => {
     setShowRegisterForm(false);
 
     try {
-      const data = await apiClient(`/api/lookup-barcode/`, {
+      const data = await apiClient<any>(`/api/lookup-barcode/`, {
         method: "POST",
         body: { barcode: code },
       });
 
-      if (data.found && data.product) {
+      const p = data.record ?? data.product;
+      if (p) {
         setProduct({
-          ...data.product,
-          kcal_per_100g: Number(data.product.kcal_per_100g),
-          protein_per_100g: Number(data.product.protein_per_100g),
-          carbs_per_100g: Number(data.product.carbs_per_100g),
-          fat_per_100g: Number(data.product.fat_per_100g),
-          fiber_per_100g: Number(data.product.fiber_per_100g ?? 0),
-          salt_per_100g: Number(data.product.salt_per_100g ?? 0),
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          barcode: p.barcode ?? null,
+          kcal_per_100g: Number(p.kcal_per_100g),
+          protein_per_100g: Number(p.protein_per_100g),
+          carbs_per_100g: Number(p.carbs_per_100g),
+          fat_per_100g: Number(p.fat_per_100g),
+          fiber_per_100g: Number(p.fiber_per_100g ?? 0),
+          salt_per_100g: Number(p.salt_per_100g ?? 0),
+          image_url: p.image_url ?? null,
+          source: data.source ?? "api",
         });
-        setLookupSource(data.source);
+        setLookupSource(data.source ?? "");
       } else {
         setNotFound(true);
       }
