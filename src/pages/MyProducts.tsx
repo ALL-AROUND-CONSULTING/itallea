@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { RecipeList } from "@/components/recipes/RecipeList";
 import logoImg from "@/assets/logo-itallea.png";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
