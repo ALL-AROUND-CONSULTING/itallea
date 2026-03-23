@@ -159,16 +159,15 @@ const MyProducts = () => {
 
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId || !user) return;
-    const { error } = await supabase
-      .from("user_recipe_categories")
-      .delete()
-      .eq("id", deleteCategoryId)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/recipe_categories/delete/", {
+        method: "POST",
+        body: { category_id: deleteCategoryId },
+      });
       toast.success("Categoria eliminata");
       fetchCustomCategories();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setDeleteCategoryId(null);
   };
