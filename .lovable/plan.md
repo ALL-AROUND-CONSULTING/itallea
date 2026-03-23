@@ -1,99 +1,144 @@
 
 
-## Fix completo dei punti 1, 4, 5, 6 e 7
+## Analisi documentazione API della Software House e piano di implementazione
+
+### Cosa hanno fornito
+
+La software house ha implementato una prima versione completa delle API, raggiungibili su `https://api.itallea.b4web.biz/`. Il documento copre **11 aree** con tutti gli endpoint necessari.
 
 ---
 
-### Punto 1 -- Ricalibrazione lancetta gauge
+### Mappatura completa: Endpoint forniti vs. Codice attuale
 
-**Problema**: Le zone colorate dell'arco e la formula della lancetta non sono allineate. L'arco totale va da -180deg a 0deg (180deg) e rappresenta 0-130% del target (maxPct=1.3). Ma le zone attuali usano angoli fissi (-46deg e -12deg) che non corrispondono ai confini 75% e 110%.
-
-Calcolo corretto con maxPct=1.3:
-- Grigia (0-75%): da -180deg a -180 + (0.75/1.3)*180 = **-76.2deg**
-- Verde (75-110%): da -76.2deg a -180 + (1.1/1.3)*180 = **-27.7deg**
-- Rossa (110-130%): da -27.7deg a 0deg
-
-**File**: `src/components/dashboard/GoalsSlide.tsx`
-- Sostituire gli angoli hardcoded delle tre zone con i valori calcolati: `arcPath(-180, -76)`, `arcPath(-76, -28)`, `arcPath(-28, 0)`
-- La formula della lancetta resta invariata (gia' corretta)
-
----
-
-### Punto 4 -- Pagina gestione bilancia
-
-**Stato attuale**: PairDevice.tsx gestisce pairing/unpairing e profili. Settings.tsx ha una sezione minimale. Manca una vista di monitoraggio con storico pesate dalla bilancia.
-
-**File nuovo**: `src/pages/DeviceManager.tsx`
-- Sezione stato dispositivo (connesso/disconnesso, ultimo invio dati, hardware ID)
-- Lista ultime pesate ricevute dal dispositivo (query su `weighings` dove `device_profile_id` non e' null)
-- Link rapido a gestione profili (navigazione a PairDevice)
-- Card riepilogativa con numero pesate oggi e ultima pesata
-
-**File**: `src/App.tsx`
-- Aggiunta rotta `/device` dentro le rotte protette con layout
-
-**File**: `src/pages/Settings.tsx`
-- Il pulsante "Bilancia collegata" naviga a `/device` invece di mostrare solo info inline
+| # | Area | Endpoint fornito | Stato attuale nel codice | Azione |
+|---|------|-----------------|-------------------------|--------|
+| 1 | **Registrazione** | `POST /api/register` | Usa `supabase.auth.signUp` in `Register.tsx` | Riscrivere |
+| 2 | **Verifica email** | `POST /api/register/verify` | Usa `supabase.auth.verifyOtp` in `VerifyEmail.tsx` | Riscrivere |
+| 3 | **Reinvio codice** | `POST /api/register/resend` | Usa `supabase.auth.resend` in `VerifyEmail.tsx` | Riscrivere |
+| 4 | **Login** | `POST /oauth/token` | ✅ Già migrato in `authService.ts` — **MA** mancano `grant_type`, `client_id`, `client_secret`, `scope` | Fix body |
+| 5 | **Logout** | `POST /api/logout` | Solo `clearTokens()` locale | Aggiungere chiamata API |
+| 6 | **Profilo GET** | `POST /api/app/vw_profiles/get` | Chiama `/api/profile/` (sbagliato) | Fix path |
+| 7 | **Profilo UPDATE** | `POST /api/updateProfile` | Usa `supabase.from("profiles")` in `Profile.tsx` | Riscrivere |
+| 8 | **Barcode lookup** | `POST /api/lookup-barcode` | ✅ Già migrato — path leggermente diverso (trailing slash) | Verificare |
+| 9 | **Water logs GET** | `POST /api/app/water_logs/summary` | Usa `supabase.from("water_logs")` | Riscrivere |
+| 10 | **Water logs ADD** | `POST /api/app/water_logs/add` | Usa `supabase.from("water_logs")` | Riscrivere |
+| 11 | **Water logs DELETE** | `POST /api/app/water_logs/delete-last` | Usa `supabase.from("water_logs")` | Riscrivere |
+| 12 | **Weight logs GET** | `POST /api/app/weight_logs/get` | Usa `supabase.from("weight_logs")` | Riscrivere |
+| 13 | **Weight logs ADD** | `POST /api/app/weight_logs/add` | Usa `supabase.from("weight_logs")` | Riscrivere |
+| 14 | **Products GET** | `POST /api/app/products/get` | Usa `supabase.from("user_products")` | Riscrivere |
+| 15 | **Products ADD** | `POST /api/app/products/add` | Usa `supabase.from("user_products")` | Riscrivere |
+| 16 | **Products UPDATE** | `POST /api/app/products/update` | Usa `supabase.from("user_products")` | Riscrivere |
+| 17 | **Products DELETE** | `POST /api/app/products/delete` | Usa `supabase.from("user_products")` | Riscrivere |
+| 18 | **Recipe categories CRUD** | `/api/app/recipe_categories/*` | Usa `supabase.from("user_recipe_categories")` | Riscrivere |
+| 19 | **Recipes CRUD** | `/api/app/recipes/*` | Usa `supabase.from("recipes")` | Riscrivere |
+| 20 | **Recipe detail** | `POST /api/app/recipes/get-detail` | Usa `supabase.from("recipe_ingredients")` | Riscrivere |
+| 21 | **Meals ADD** | `POST /api/app/meals/add` | Usa `supabase.from("weighings")` | Riscrivere |
+| 22 | **Meals summary** | `POST /api/app/meals/summary` | Chiama `/api/get-daily-nutrition/` | Fix path + formato |
 
 ---
 
-### Punto 5 -- Prodotti non trovati -> registrazione
+### Differenze critiche rispetto al codice attuale
 
-**Stato attuale**: Gia' implementato! In Scan.tsx (righe 442-520) quando un barcode non viene trovato, c'e' gia' un bottone "Registra prodotto" che apre un form con barcode pre-compilato, campi nome/brand/valori nutrizionali per 100g, e salvataggio in `user_products`. Il prodotto registrato viene poi usato immediatamente per la pesata.
+**1. Login — body incompleto**
+Il codice attuale invia `{ username, password }`. La documentazione richiede:
+```json
+{
+  "grant_type": "password",
+  "client_id": "{{client_id}}",
+  "client_secret": "{{client_secret}}",
+  "username": "...",
+  "password": "...",
+  "scope": "*"
+}
+```
+Servono `client_id` e `client_secret` dalla software house.
 
-**Nessuna modifica necessaria** -- questo punto e' gia' completo.
+**2. Proxy — URL base cambiato**
+Il proxy punta a `https://italea.test.b4web.biz` ma il nuovo URL è `https://api.itallea.b4web.biz/`.
 
----
+**3. Tutti i metodi sono POST**
+La loro API usa POST per tutto (anche le GET), con body JSON. Il nostro `apiClient` supporta già questo pattern.
 
-### Punto 6 -- Gestione assenza di rete
+**4. Formato risposta lookup-barcode diverso**
+Loro restituiscono `{ source, record: {...} }` invece di `{ found, source, product: {...} }`. Il campo è `record`, non `product`.
 
-**File nuovo**: `src/hooks/useNetworkStatus.ts`
-- Hook che monitora `navigator.onLine` e gli eventi `online`/`offline`
-- Espone `isOnline: boolean`
-
-**File nuovo**: `src/components/layout/OfflineBanner.tsx`
-- Banner sticky in alto che appare quando `isOnline === false`
-- Testo: "Connessione assente -- Alcune funzionalita' potrebbero non essere disponibili"
-- Colore warning (giallo/arancio), si nasconde automaticamente quando torna online con toast "Connessione ripristinata"
-
-**File**: `src/components/layout/AppLayout.tsx`
-- Aggiunta di `OfflineBanner` prima del contenuto principale
-
-**File**: `src/integrations/supabase/client.ts` -- NON modificabile, quindi il retry va gestito a livello di QueryClient.
-
-**File**: `src/App.tsx`
-- Configurazione `QueryClient` con `retry: 2` e `retryDelay` esponenziale come default per tutte le query
-- Aggiunta `onError` globale che mostra toast in caso di errore di rete
-
----
-
-### Punto 7 -- Overview endpoints admin
-
-**File nuovo**: `src/pages/admin/AdminEndpoints.tsx`
-- Tabella con tutte le 14 edge functions elencate
-- Per ciascuna: nome, metodo, stato JWT (da config.toml), e un pulsante "Test" che fa un health-check (OPTIONS request)
-- Colonna stato: pallino verde/rosso in base alla risposta
-- Possibilita' di testare tutti in batch con un bottone "Testa tutti"
-
-**File**: `src/components/admin/AdminLayout.tsx`
-- Aggiunta voce di navigazione "Endpoints" con icona `Server`
-
-**File**: `src/App.tsx`
-- Aggiunta rotta `/admin/endpoints` dentro le rotte admin
+**5. Meals summary diverso da daily-nutrition**
+Path: `/api/app/meals/summary` (non `/api/get-daily-nutrition/`). Body: `{ start_date, end_date }` (non `{ date }`). Risposta: array di giorni con `meals.Breakfast/Lunch/Dinner/Snack` (maiuscolo).
 
 ---
 
-### Riepilogo modifiche
+### Piano di implementazione (ordinato per priorità)
 
-| Punto | File | Tipo |
-|-------|------|------|
-| 1 | GoalsSlide.tsx | Modifica (3 angoli) |
-| 4 | DeviceManager.tsx | Nuovo file |
-| 4 | App.tsx, Settings.tsx | Modifica |
-| 5 | -- | Gia' fatto |
-| 6 | useNetworkStatus.ts | Nuovo hook |
-| 6 | OfflineBanner.tsx | Nuovo componente |
-| 6 | AppLayout.tsx, App.tsx | Modifica |
-| 7 | AdminEndpoints.tsx | Nuovo file |
-| 7 | AdminLayout.tsx, App.tsx | Modifica |
+**Fase 1 — Infrastruttura (prerequisito)**
+1. Aggiornare `BACKEND_BASE_URL` nel proxy da `https://italea.test.b4web.biz` a `https://api.itallea.b4web.biz`
+2. Chiedere alla software house `client_id` e `client_secret` per il login OAuth
+3. Aggiornare `authService.ts` per includere `grant_type`, `client_id`, `client_secret`, `scope` nel body di login
+
+**Fase 2 — Autenticazione completa**
+4. Riscrivere `Register.tsx` per chiamare `POST /api/register` via `apiClient`
+5. Riscrivere `VerifyEmail.tsx` per chiamare `POST /api/register/verify` (la verify restituisce i token OAuth, quindi fare auto-login)
+6. Aggiungere reinvio codice via `POST /api/register/resend`
+7. Aggiornare logout per chiamare `POST /api/logout` prima di pulire i token locali
+8. Riscrivere `ForgotPassword.tsx` (nota: la documentazione NON include un endpoint di reset password — da chiedere alla software house)
+
+**Fase 3 — Profilo**
+9. Fix path profilo GET: da `/api/profile/` a `POST /api/app/vw_profiles/get`
+10. Riscrivere aggiornamento profilo per usare `POST /api/updateProfile`
+
+**Fase 4 — CRUD dati (sgancio completo da Supabase)**
+11. Riscrivere `useWaterLog.ts` per usare `/api/app/water_logs/summary`, `/add`, `/delete-last`
+12. Riscrivere `useWaterHistory.ts` per usare `/api/app/water_logs/summary` con range date
+13. Riscrivere `useWeightLog.ts` per usare `/api/app/weight_logs/get` e `/add`
+14. Riscrivere `MyProducts.tsx` per usare `/api/app/products/*`
+15. Riscrivere `useRecipes.ts` per usare `/api/app/recipes/*` e `/api/app/recipe_categories/*`
+16. Riscrivere le pesate (meals) in `Scan.tsx` e `WeighingModal.tsx` per usare `POST /api/app/meals/add`
+17. Riscrivere `useDailyNutrition.ts` per usare `POST /api/app/meals/summary`
+
+**Fase 5 — Fix risposte**
+18. Adattare il parsing di `lookup-barcode` al nuovo formato `{ source, record }` invece di `{ found, product }`
+
+---
+
+### Domande aperte per la software house
+
+Prima di procedere, servono risposte su:
+
+1. **`client_id` e `client_secret`** — quali valori usare per il login OAuth?
+2. **Reset password** — non c'è un endpoint nella documentazione. Esiste?
+3. **Eliminazione pasto** — c'è un endpoint per eliminare un pasto registrato? (es. `DELETE /api/app/meals/delete`)
+4. **Aggiornamento pasto** — si può modificare un pasto già inserito?
+5. **Export dati / Eliminazione account** — endpoint previsti?
+6. **CORS** — il nuovo server `api.itallea.b4web.biz` ha gli header CORS abilitati? Se sì, possiamo rimuovere il proxy.
+
+---
+
+### File coinvolti nel refactor
+
+```text
+Infrastruttura:
+  supabase/functions/backend-proxy/index.ts  → nuovo URL base
+  src/lib/authService.ts                     → body login completo
+  src/lib/apiClient.ts                       → nessuna modifica
+  src/contexts/AuthContext.tsx                → fix path profilo + logout API
+
+Auth pages:
+  src/pages/Register.tsx                     → riscrittura completa
+  src/pages/VerifyEmail.tsx                  → riscrittura completa  
+  src/pages/ForgotPassword.tsx               → dipende da endpoint mancante
+
+Hooks da riscrivere:
+  src/hooks/useWaterLog.ts                   → apiClient
+  src/hooks/useWaterHistory.ts               → apiClient
+  src/hooks/useWeightLog.ts                  → apiClient
+  src/hooks/useDailyNutrition.ts             → nuovo path + formato
+  src/hooks/useRecipes.ts                    → apiClient
+
+Pages da aggiornare:
+  src/pages/Scan.tsx                         → fix formato risposta + meals/add
+  src/pages/MyProducts.tsx                   → apiClient per products
+  src/pages/Profile.tsx                      → apiClient per profilo
+  src/components/weighing/WeighingModal.tsx   → meals/add
+```
+
+Totale: ~15 file da modificare, di cui 2 riscritture complete (Register, VerifyEmail) e 10+ adattamenti di path/formato.
 
