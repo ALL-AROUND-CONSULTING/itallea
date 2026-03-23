@@ -79,29 +79,29 @@ const Onboarding = () => {
     });
     const macros = calculateMacros(tdee);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dateOfBirth || null,
-        sex: sex || null,
-        current_weight: parseFloat(weight),
-        height: parseFloat(height),
-        target_weight: targetWeight ? parseFloat(targetWeight) : null,
-        activity_level: activityLevel || null,
-        target_kcal: macros.kcal,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        phone: phone.trim() ? "+39" + phone.trim() : null,
-        avatar_url: avatarUrl,
-        onboarding_completed: true,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Errore nel salvataggio: " + error.message);
+    try {
+      await apiClient("/api/updateProfile/", {
+        method: "POST",
+        body: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          date_of_birth: dateOfBirth || null,
+          sex: sex || null,
+          current_weight: parseFloat(weight),
+          height: parseFloat(height),
+          target_weight: targetWeight ? parseFloat(targetWeight) : null,
+          activity_level: activityLevel || null,
+          target_kcal: macros.kcal,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          phone: phone.trim() ? "+39" + phone.trim() : null,
+          avatar_url: avatarUrl,
+          onboarding_completed: true,
+        },
+      });
+    } catch (err: any) {
+      toast.error("Errore nel salvataggio: " + (err.message || "Riprova"));
       setSubmitting(false);
       return;
     }
