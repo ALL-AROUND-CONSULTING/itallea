@@ -174,24 +174,29 @@ const MyProducts = () => {
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("user_products")
-      .select(
-        "id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, salt_per_100g"
-      )
-      .eq("user_id", user.id)
-      .order("name");
-    setProducts(
-      (data ?? []).map((p) => ({
-        ...p,
-        kcal_per_100g: Number(p.kcal_per_100g),
-        protein_per_100g: Number(p.protein_per_100g),
-        carbs_per_100g: Number(p.carbs_per_100g),
-        fat_per_100g: Number(p.fat_per_100g),
-        fiber_per_100g: Number(p.fiber_per_100g),
-        salt_per_100g: Number(p.salt_per_100g),
-      }))
-    );
+    try {
+      const data = await apiClient<any>("/api/app/products/get/", {
+        method: "POST",
+        body: {},
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      setProducts(
+        records.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          barcode: p.barcode ?? null,
+          kcal_per_100g: Number(p.kcal_per_100g),
+          protein_per_100g: Number(p.protein_per_100g),
+          carbs_per_100g: Number(p.carbs_per_100g),
+          fat_per_100g: Number(p.fat_per_100g),
+          fiber_per_100g: Number(p.fiber_per_100g),
+          salt_per_100g: Number(p.salt_per_100g),
+        }))
+      );
+    } catch {
+      setProducts([]);
+    }
     setLoading(false);
   }, [user]);
 
