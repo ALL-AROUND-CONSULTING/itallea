@@ -74,8 +74,8 @@ async function refreshAccessToken(): Promise<boolean> {
   try {
     const res = await proxyFetch("/oauth/token/", "POST", {
       grant_type: "refresh_token",
-      client_id: "PLACEHOLDER_CLIENT_ID",
-      client_secret: "PLACEHOLDER_CLIENT_SECRET",
+      client_id: "019cf6e9-eb89-7231-8c1e-fd4c46d7ff07",
+      client_secret: "L2EtxKyDGiOmrVVqWytsblhNbdVlUm4muJWoDxKQ",
       refresh_token: refresh,
       scope: "*",
     });

@@ -19,8 +19,8 @@ export async function login(username: string, password: string): Promise<LoginRe
       method: "POST",
       body: {
         grant_type: "password",
-        client_id: "PLACEHOLDER_CLIENT_ID",
-        client_secret: "PLACEHOLDER_CLIENT_SECRET",
+        client_id: "019cf6e9-eb89-7231-8c1e-fd4c46d7ff07",
+        client_secret: "L2EtxKyDGiOmrVVqWytsblhNbdVlUm4muJWoDxKQ",
         username,
         password,
         scope: "*",

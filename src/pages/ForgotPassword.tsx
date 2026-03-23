@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { AuthLogo } from "@/components/auth/AuthLogo";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { Mail } from "lucide-react";
@@ -14,14 +14,16 @@ const ForgotPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await apiClient("/api/password/email", {
+        method: "POST",
+        body: { email },
+        skipAuth: true,
+      });
       setSent(true);
       toast.success("Email inviata! Controlla la tua casella di posta.");
+    } catch (err: any) {
+      toast.error(err.message || "Errore nell'invio dell'email");
     }
     setSubmitting(false);
   };

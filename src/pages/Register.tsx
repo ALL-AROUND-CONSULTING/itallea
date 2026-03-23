@@ -44,7 +44,7 @@ const Register = () => {
     try {
       await apiClient("/api/register/", {
         method: "POST",
-        body: { name, email, password, password_confirmation: confirmPassword },
+        body: { email, password, password_confirmation: confirmPassword },
         skipAuth: true,
       });
       toast.success("Controlla la tua email per il codice di verifica!");
