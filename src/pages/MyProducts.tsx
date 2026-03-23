@@ -142,18 +142,17 @@ const MyProducts = () => {
       return;
     }
     setSavingCategory(true);
-    const { error } = await supabase.from("user_recipe_categories").insert({
-      user_id: user.id,
-      name,
-      icon: "🍽️",
-    });
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/recipe_categories/add/", {
+        method: "POST",
+        body: { name, icon: "🍽️" },
+      });
       toast.success("Categoria aggiunta!");
       setNewCategoryDialogOpen(false);
       setNewCategoryName("");
       fetchCustomCategories();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSavingCategory(false);
   };
