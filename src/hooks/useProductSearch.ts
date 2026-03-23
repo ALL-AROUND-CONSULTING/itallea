@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type SearchableProduct = {
@@ -27,45 +27,29 @@ export function useProductSearch(query: string) {
 
     const timer = setTimeout(async () => {
       setIsLoading(true);
-      const searchTerm = `%${query}%`;
-
-      // Search both tables in parallel
-      const [productsRes, userProductsRes] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-          .ilike("name", searchTerm)
-          .limit(10),
-        supabase
-          .from("user_products")
-          .select("id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-          .eq("user_id", user.id)
-          .ilike("name", searchTerm)
-          .limit(10),
-      ]);
-
-      const combined: SearchableProduct[] = [
-        ...(userProductsRes.data ?? []).map((p) => ({
-          ...p,
+      try {
+        const data = await apiClient<any>("/api/app/products/search/", {
+          method: "POST",
+          body: { query },
+        });
+        const records = Array.isArray(data) ? data : data.records ?? [];
+        const combined: SearchableProduct[] = records.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          barcode: p.barcode ?? null,
           kcal_per_100g: Number(p.kcal_per_100g),
           protein_per_100g: Number(p.protein_per_100g),
           carbs_per_100g: Number(p.carbs_per_100g),
           fat_per_100g: Number(p.fat_per_100g),
-          source: "user_products" as const,
-        })),
-        ...(productsRes.data ?? []).map((p) => ({
-          ...p,
-          kcal_per_100g: Number(p.kcal_per_100g),
-          protein_per_100g: Number(p.protein_per_100g),
-          carbs_per_100g: Number(p.carbs_per_100g),
-          fat_per_100g: Number(p.fat_per_100g),
-          source: "products" as const,
-        })),
-      ];
-
-      setResults(combined);
+          source: (p.source ?? "products") as "products" | "user_products",
+        }));
+        setResults(combined);
+      } catch {
+        setResults([]);
+      }
       setIsLoading(false);
-    }, 300); // debounce
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [query, user]);
