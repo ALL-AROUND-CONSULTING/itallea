@@ -54,15 +54,8 @@ const Onboarding = () => {
     if (!file || !user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
-      toast.success("Foto caricata!");
+      // Avatar upload not yet supported by external API — skip for now
+      toast.info("Il caricamento dell'avatar sarà disponibile a breve.");
     } catch (err: any) {
       toast.error("Errore upload: " + (err.message || "Riprova"));
     } finally {
