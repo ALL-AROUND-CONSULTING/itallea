@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type RecipeIngredient = {
@@ -36,18 +36,25 @@ export function useRecipes(category?: string) {
   const fetchRecipes = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    let query = supabase
-      .from("recipes")
-      .select("id, name, category, servings, notes, created_at")
-      .eq("user_id", user.id)
-      .order("name");
-
-    if (category) {
-      query = query.eq("category", category);
+    try {
+      const body: any = {};
+      if (category) body.category = category;
+      const data = await apiClient<any>("/api/app/recipes/get/", {
+        method: "POST",
+        body,
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      setRecipes(records.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        servings: Number(r.servings ?? 1),
+        notes: r.notes ?? null,
+        created_at: r.created_at,
+      })));
+    } catch {
+      setRecipes([]);
     }
-
-    const { data } = await query;
-    setRecipes(data ?? []);
     setLoading(false);
   }, [user, category]);
 
@@ -56,39 +63,42 @@ export function useRecipes(category?: string) {
   }, [fetchRecipes]);
 
   const fetchRecipeWithIngredients = useCallback(async (recipeId: string): Promise<Recipe | null> => {
-    const [recipeRes, ingredientsRes] = await Promise.all([
-      supabase.from("recipes").select("*").eq("id", recipeId).single(),
-      supabase.from("recipe_ingredients").select("*").eq("recipe_id", recipeId),
-    ]);
+    try {
+      const data = await apiClient<any>("/api/app/recipes/get-detail/", {
+        method: "POST",
+        body: { recipe_id: recipeId },
+      });
+      const r = data.record ?? data;
+      if (!r) return null;
 
-    if (!recipeRes.data) return null;
+      const ingredients: RecipeIngredient[] = (r.ingredients ?? []).map((i: any) => ({
+        id: i.id,
+        product_name: i.product_name,
+        grams: Number(i.grams),
+        kcal: Number(i.kcal),
+        protein: Number(i.protein),
+        carbs: Number(i.carbs),
+        fat: Number(i.fat),
+        product_id: i.product_id ?? null,
+        user_product_id: i.user_product_id ?? null,
+      }));
 
-    const ingredients: RecipeIngredient[] = (ingredientsRes.data ?? []).map((i) => ({
-      id: i.id,
-      product_name: i.product_name,
-      grams: Number(i.grams),
-      kcal: Number(i.kcal),
-      protein: Number(i.protein),
-      carbs: Number(i.carbs),
-      fat: Number(i.fat),
-      product_id: i.product_id,
-      user_product_id: i.user_product_id,
-    }));
-
-    const total_kcal = ingredients.reduce((s, i) => s + i.kcal, 0);
-    const total_protein = ingredients.reduce((s, i) => s + i.protein, 0);
-    const total_carbs = ingredients.reduce((s, i) => s + i.carbs, 0);
-    const total_fat = ingredients.reduce((s, i) => s + i.fat, 0);
-
-    return {
-      ...recipeRes.data,
-      servings: Number(recipeRes.data.servings),
-      ingredients,
-      total_kcal,
-      total_protein,
-      total_carbs,
-      total_fat,
-    };
+      return {
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        servings: Number(r.servings ?? 1),
+        notes: r.notes ?? null,
+        created_at: r.created_at,
+        ingredients,
+        total_kcal: ingredients.reduce((s, i) => s + i.kcal, 0),
+        total_protein: ingredients.reduce((s, i) => s + i.protein, 0),
+        total_carbs: ingredients.reduce((s, i) => s + i.carbs, 0),
+        total_fat: ingredients.reduce((s, i) => s + i.fat, 0),
+      };
+    } catch {
+      return null;
+    }
   }, []);
 
   const createRecipe = useCallback(async (
@@ -99,39 +109,27 @@ export function useRecipes(category?: string) {
     ingredients: Omit<RecipeIngredient, "id">[]
   ) => {
     if (!user) return null;
-
-    const { data: recipe, error } = await supabase
-      .from("recipes")
-      .insert({ user_id: user.id, name, category, servings, notes })
-      .select("id")
-      .single();
-
-    if (error || !recipe) return null;
-
-    if (ingredients.length > 0) {
-      await supabase.from("recipe_ingredients").insert(
-        ingredients.map((i) => ({
-          recipe_id: recipe.id,
-          product_name: i.product_name,
-          grams: i.grams,
-          kcal: i.kcal,
-          protein: i.protein,
-          carbs: i.carbs,
-          fat: i.fat,
-          product_id: i.product_id,
-          user_product_id: i.user_product_id,
-        }))
-      );
+    try {
+      const data = await apiClient<any>("/api/app/recipes/add/", {
+        method: "POST",
+        body: { name, category, servings, notes, ingredients },
+      });
+      await fetchRecipes();
+      return data.id ?? data.record?.id ?? null;
+    } catch {
+      return null;
     }
-
-    await fetchRecipes();
-    return recipe.id;
   }, [user, fetchRecipes]);
 
   const deleteRecipe = useCallback(async (recipeId: string) => {
     if (!user) return;
-    await supabase.from("recipes").delete().eq("id", recipeId).eq("user_id", user.id);
-    await fetchRecipes();
+    try {
+      await apiClient("/api/app/recipes/delete/", {
+        method: "POST",
+        body: { recipe_id: recipeId },
+      });
+      await fetchRecipes();
+    } catch {}
   }, [user, fetchRecipes]);
 
   return { recipes, loading, fetchRecipes, fetchRecipeWithIngredients, createRecipe, deleteRecipe };

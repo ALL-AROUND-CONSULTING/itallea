@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useWaterLog(date?: string) {
@@ -11,44 +11,43 @@ export function useWaterLog(date?: string) {
     queryKey: ["water-log", dateStr],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("water_logs")
-        .select("id, amount_ml")
-        .eq("user_id", user!.id)
-        .eq("logged_at", dateStr);
-      if (error) throw error;
-      const totalMl = (data ?? []).reduce((sum, r) => sum + r.amount_ml, 0);
-      return { entries: data ?? [], totalMl, count: data?.length ?? 0 };
+      const data = await apiClient<any>("/api/app/water_logs/summary/", {
+        method: "POST",
+        body: { start_date: dateStr, end_date: dateStr },
+      });
+      // API returns an array of day summaries
+      const days = Array.isArray(data) ? data : data.records ?? [data];
+      const day = days.find((d: any) => d.date === dateStr) ?? days[0];
+      const totalMl = day?.total_ml ?? 0;
+      const count = day?.count ?? 0;
+      return { totalMl, count };
     },
     staleTime: 30_000,
   });
 
   const addGlass = useMutation({
     mutationFn: async (amountMl: number = 250) => {
-      const { error } = await supabase.from("water_logs").insert({
-        user_id: user!.id,
-        amount_ml: amountMl,
-        logged_at: dateStr,
+      await apiClient("/api/app/water_logs/add/", {
+        method: "POST",
+        body: { amount_ml: amountMl, logged_at: dateStr },
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["water-log", dateStr] });
+      queryClient.invalidateQueries({ queryKey: ["water-history"] });
     },
   });
 
   const removeLastGlass = useMutation({
     mutationFn: async () => {
-      const last = query.data?.entries.at(-1);
-      if (!last) return;
-      const { error } = await supabase
-        .from("water_logs")
-        .delete()
-        .eq("id", last.id);
-      if (error) throw error;
+      await apiClient("/api/app/water_logs/delete-last/", {
+        method: "POST",
+        body: { logged_at: dateStr },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["water-log", dateStr] });
+      queryClient.invalidateQueries({ queryKey: ["water-history"] });
     },
   });
 

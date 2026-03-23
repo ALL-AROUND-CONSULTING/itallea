@@ -47,11 +47,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const data = await apiClient<Profile>("/api/profile/");
-      setProfile(data);
-      // Derive user from profile if not already set
-      if (data?.id) {
-        setUser((prev) => prev ?? { id: data.id, email: "" });
+      const data = await apiClient<any>("/api/app/vw_profiles/get/", {
+        method: "POST",
+        body: {},
+      });
+      // The API may return the profile directly or inside a wrapper
+      const p = data.record ?? data;
+      setProfile({
+        id: p.id ?? "user",
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
+        onboarding_completed: p.onboarding_completed ?? true,
+        theme: p.theme ?? "light",
+        water_goal_ml: p.water_goal_ml ?? 2000,
+        avatar_url: p.avatar_url ?? null,
+        target_kcal: p.target_kcal ?? null,
+        target_protein: p.target_protein ?? null,
+        target_carbs: p.target_carbs ?? null,
+        target_fat: p.target_fat ?? null,
+        target_weight: p.target_weight ?? null,
+      });
+      if (p.id) {
+        setUser((prev) => prev ?? { id: p.id, email: "" });
       }
     } catch {
       // profile endpoint not available yet — use stub
@@ -108,8 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [fetchProfile]
   );
 
-  const signOut = useCallback(() => {
-    authLogout();
+  const signOut = useCallback(async () => {
+    await authLogout();
     setUser(null);
     setProfile(null);
   }, []);

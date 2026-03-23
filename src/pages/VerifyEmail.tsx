@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
+import { setTokens } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLogo } from "@/components/auth/AuthLogo";
 import { ChevronLeft } from "lucide-react";
@@ -34,7 +35,6 @@ const VerifyEmail = () => {
     next[index] = value;
     setOtp(next);
 
-    // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
@@ -61,16 +61,29 @@ const VerifyEmail = () => {
   const handleVerify = async () => {
     if (!isComplete) return;
     setSubmitting(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: "email",
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Email verificata con successo!");
-      navigate("/post-verify", { replace: true });
+    try {
+      const data = await apiClient<{
+        access_token?: string;
+        refresh_token?: string;
+        expires_in?: number;
+        message?: string;
+      }>("/api/register/verify/", {
+        method: "POST",
+        body: { email, code },
+        skipAuth: true,
+      });
+
+      // If verification returns tokens, auto-login
+      if (data.access_token && data.refresh_token) {
+        setTokens(data.access_token, data.refresh_token, data.expires_in ?? 3600);
+        toast.success("Email verificata con successo!");
+        window.location.href = "/";
+      } else {
+        toast.success(data.message || "Email verificata! Ora puoi accedere.");
+        navigate("/login", { replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Codice non valido");
     }
     setSubmitting(false);
   };
@@ -80,17 +93,20 @@ const VerifyEmail = () => {
       toast.error("Email mancante. Torna alla registrazione.");
       return;
     }
-    const { error } = await supabase.auth.resend({ type: "signup", email });
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await apiClient("/api/register/resend/", {
+        method: "POST",
+        body: { email },
+        skipAuth: true,
+      });
       toast.success("Codice reinviato! Controlla la tua email.");
+    } catch (err: any) {
+      toast.error(err.message || "Errore nell'invio del codice");
     }
   };
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white px-6 py-12">
-      {/* Back arrow + Logo */}
       <div className="relative mb-10 mt-4">
         <button
           onClick={() => navigate(-1)}
@@ -102,14 +118,12 @@ const VerifyEmail = () => {
         <AuthLogo size="sm" />
       </div>
 
-      {/* Title */}
       <h1 className="mb-2 text-center text-xl font-bold text-foreground">Verifica email</h1>
       <p className="mb-8 text-center text-sm text-muted-foreground">
         Inserisci il codice a 6 cifre inviato a{" "}
         <span className="font-medium text-foreground">{email || "la tua email"}</span>
       </p>
 
-      {/* 6 separate OTP boxes */}
       <div className="mx-auto flex gap-3" onPaste={handlePaste}>
         {otp.map((digit, i) => (
           <input
@@ -127,7 +141,6 @@ const VerifyEmail = () => {
         ))}
       </div>
 
-      {/* Resend */}
       <p className="mt-6 text-center text-xs text-muted-foreground">
         Non hai ricevuto il codice?{" "}
         <button type="button" onClick={handleResend} className="font-medium text-[hsl(var(--brand-blue))] hover:underline">
@@ -135,7 +148,6 @@ const VerifyEmail = () => {
         </button>
       </p>
 
-      {/* Verify button */}
       <div className="mt-8">
         <button
           type="button"
