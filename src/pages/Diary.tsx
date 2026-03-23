@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useDailyNutrition } from "@/hooks/useDailyNutrition";
 import { useWaterLog } from "@/hooks/useWaterLog";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -43,15 +43,15 @@ const Diary = () => {
   };
 
   const handleDelete = async (weighingId: string) => {
-    const { error } = await supabase
-      .from("weighings")
-      .delete()
-      .eq("id", weighingId);
-    if (error) {
-      toast.error("Errore durante l'eliminazione");
-    } else {
+    try {
+      await apiClient("/api/app/meals/delete/", {
+        method: "POST",
+        body: { meal_id: weighingId },
+      });
       toast.success("Pesata eliminata");
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition", dateStr] });
+    } catch (err: any) {
+      toast.error("Errore durante l'eliminazione");
     }
   };
 

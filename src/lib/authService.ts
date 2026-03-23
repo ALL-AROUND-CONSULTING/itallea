@@ -17,7 +17,14 @@ export async function login(username: string, password: string): Promise<LoginRe
       error_description?: string;
     }>("/oauth/token/", {
       method: "POST",
-      body: { username, password },
+      body: {
+        grant_type: "password",
+        client_id: "PLACEHOLDER_CLIENT_ID",
+        client_secret: "PLACEHOLDER_CLIENT_SECRET",
+        username,
+        password,
+        scope: "*",
+      },
       skipAuth: true,
     });
 
@@ -32,7 +39,12 @@ export async function login(username: string, password: string): Promise<LoginRe
   }
 }
 
-export function logout() {
+export async function logout() {
+  try {
+    await apiClient("/api/logout/", { method: "POST" });
+  } catch {
+    // ignore — clear tokens regardless
+  }
   clearTokens();
 }
 

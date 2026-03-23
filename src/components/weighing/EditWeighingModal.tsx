@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -49,7 +49,6 @@ export function EditWeighingModal({
   const [meal, setMeal] = useState(mealType);
   const [saving, setSaving] = useState(false);
 
-  // Calculate per-gram ratios from original values
   const perGram = useMemo(
     () => ({
       kcal: item.grams > 0 ? item.kcal / item.grams : 0,
@@ -74,24 +73,24 @@ export function EditWeighingModal({
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("weighings")
-      .update({
-        grams: newGrams,
-        meal_type: meal as "breakfast" | "lunch" | "dinner" | "snack",
-        kcal: preview.kcal,
-        protein: preview.protein,
-        carbs: preview.carbs,
-        fat: preview.fat,
-      })
-      .eq("id", item.id);
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/meals/update/", {
+        method: "POST",
+        body: {
+          meal_id: item.id,
+          grams: newGrams,
+          meal_type: meal,
+          kcal: preview.kcal,
+          protein: preview.protein,
+          carbs: preview.carbs,
+          fat: preview.fat,
+        },
+      });
       toast.success("Pesata aggiornata!");
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition", dateStr] });
       onOpenChange(false);
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   };
@@ -104,12 +103,10 @@ export function EditWeighingModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Product name (read-only) */}
           <div className="rounded-lg border bg-muted/50 p-3">
             <p className="text-sm font-semibold text-foreground">{item.name}</p>
           </div>
 
-          {/* Grams */}
           <div className="space-y-1">
             <Label className="text-xs">Grammi</Label>
             <Input
@@ -123,7 +120,6 @@ export function EditWeighingModal({
             />
           </div>
 
-          {/* Live preview */}
           {newGrams > 0 && (
             <div className="grid grid-cols-4 gap-2 rounded-lg bg-primary/5 p-3 text-center">
               <div>
@@ -145,7 +141,6 @@ export function EditWeighingModal({
             </div>
           )}
 
-          {/* Meal selector */}
           <div className="space-y-1">
             <Label className="text-xs">Pasto</Label>
             <Select value={meal} onValueChange={setMeal}>

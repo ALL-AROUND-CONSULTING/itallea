@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLogo } from "@/components/auth/AuthLogo";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const Register = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,28 +41,38 @@ const Register = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Controlla la tua email per confermare la registrazione!");
+    try {
+      await apiClient("/api/register/", {
+        method: "POST",
+        body: { name, email, password, password_confirmation: confirmPassword },
+        skipAuth: true,
+      });
+      toast.success("Controlla la tua email per il codice di verifica!");
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante la registrazione");
     }
     setSubmitting(false);
   };
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white px-6 py-12">
-      {/* Logo */}
       <div className="mb-10 mt-8">
         <AuthLogo size="lg" />
       </div>
 
       <form onSubmit={handleRegister} className="flex flex-1 flex-col">
         <div className="space-y-4">
+          <AuthInput
+            id="name"
+            type="text"
+            placeholder="Nome completo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            icon={User}
+            required
+            autoComplete="name"
+          />
           <AuthInput
             id="email"
             type="email"

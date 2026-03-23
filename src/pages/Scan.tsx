@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -119,22 +118,28 @@ const Scan = () => {
     setShowRegisterForm(false);
 
     try {
-      const data = await apiClient(`/api/lookup-barcode/`, {
+      const data = await apiClient<any>(`/api/lookup-barcode/`, {
         method: "POST",
         body: { barcode: code },
       });
 
-      if (data.found && data.product) {
+      const p = data.record ?? data.product;
+      if (p) {
         setProduct({
-          ...data.product,
-          kcal_per_100g: Number(data.product.kcal_per_100g),
-          protein_per_100g: Number(data.product.protein_per_100g),
-          carbs_per_100g: Number(data.product.carbs_per_100g),
-          fat_per_100g: Number(data.product.fat_per_100g),
-          fiber_per_100g: Number(data.product.fiber_per_100g ?? 0),
-          salt_per_100g: Number(data.product.salt_per_100g ?? 0),
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          barcode: p.barcode ?? null,
+          kcal_per_100g: Number(p.kcal_per_100g),
+          protein_per_100g: Number(p.protein_per_100g),
+          carbs_per_100g: Number(p.carbs_per_100g),
+          fat_per_100g: Number(p.fat_per_100g),
+          fiber_per_100g: Number(p.fiber_per_100g ?? 0),
+          salt_per_100g: Number(p.salt_per_100g ?? 0),
+          image_url: p.image_url ?? null,
+          source: data.source ?? "api",
         });
-        setLookupSource(data.source);
+        setLookupSource(data.source ?? "");
       } else {
         setNotFound(true);
       }
@@ -226,24 +231,25 @@ const Scan = () => {
     if (!user || !product || !preview) return;
     setSaving(true);
 
-    const { error } = await supabase.from("weighings").insert({
-      user_id: user.id,
-      product_id: product.id,
-      product_name: product.name,
-      grams: parseFloat(grams),
-      meal_type: mealType as "breakfast" | "lunch" | "dinner" | "snack",
-      kcal: preview.kcal,
-      protein: preview.protein,
-      carbs: preview.carbs,
-      fat: preview.fat,
-    });
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/meals/add/", {
+        method: "POST",
+        body: {
+          product_id: product.id,
+          product_name: product.name,
+          grams: parseFloat(grams),
+          meal_type: mealType,
+          kcal: preview.kcal,
+          protein: preview.protein,
+          carbs: preview.carbs,
+          fat: preview.fat,
+        },
+      });
       toast.success(`${product.name} aggiunto!`);
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition"] });
       resetAll();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   }, [user, product, preview, grams, mealType, queryClient]);
@@ -269,39 +275,42 @@ const Scan = () => {
       return;
     }
     setRegistering(true);
-    const { data, error } = await supabase.from("user_products").insert({
-      user_id: user.id,
-      name: registerData.name.trim(),
-      brand: registerData.brand.trim() || null,
-      barcode: scannedBarcode || null,
-      kcal_per_100g: parseFloat(registerData.kcal) || 0,
-      protein_per_100g: parseFloat(registerData.protein) || 0,
-      carbs_per_100g: parseFloat(registerData.carbs) || 0,
-      fat_per_100g: parseFloat(registerData.fat) || 0,
-      fiber_per_100g: parseFloat(registerData.fiber) || 0,
-      salt_per_100g: parseFloat(registerData.salt) || 0,
-    }).select().single();
-
-    if (error) {
-      toast.error("Errore nel salvataggio: " + error.message);
-    } else if (data) {
+    try {
+      const payload = {
+        name: registerData.name.trim(),
+        brand: registerData.brand.trim() || null,
+        barcode: scannedBarcode || null,
+        kcal_per_100g: parseFloat(registerData.kcal) || 0,
+        protein_per_100g: parseFloat(registerData.protein) || 0,
+        carbs_per_100g: parseFloat(registerData.carbs) || 0,
+        fat_per_100g: parseFloat(registerData.fat) || 0,
+        fiber_per_100g: parseFloat(registerData.fiber) || 0,
+        salt_per_100g: parseFloat(registerData.salt) || 0,
+      };
+      const data = await apiClient<any>("/api/app/products/add/", {
+        method: "POST",
+        body: payload,
+      });
+      const p = data.record ?? data;
       toast.success("Prodotto registrato!");
       setProduct({
-        id: data.id,
-        name: data.name,
-        brand: data.brand,
-        barcode: data.barcode,
-        kcal_per_100g: Number(data.kcal_per_100g),
-        protein_per_100g: Number(data.protein_per_100g),
-        carbs_per_100g: Number(data.carbs_per_100g),
-        fat_per_100g: Number(data.fat_per_100g),
-        fiber_per_100g: Number(data.fiber_per_100g),
-        salt_per_100g: Number(data.salt_per_100g),
-        image_url: data.image_url,
+        id: p.id,
+        name: p.name ?? payload.name,
+        brand: p.brand ?? payload.brand,
+        barcode: p.barcode ?? payload.barcode,
+        kcal_per_100g: Number(p.kcal_per_100g ?? payload.kcal_per_100g),
+        protein_per_100g: Number(p.protein_per_100g ?? payload.protein_per_100g),
+        carbs_per_100g: Number(p.carbs_per_100g ?? payload.carbs_per_100g),
+        fat_per_100g: Number(p.fat_per_100g ?? payload.fat_per_100g),
+        fiber_per_100g: Number(p.fiber_per_100g ?? payload.fiber_per_100g),
+        salt_per_100g: Number(p.salt_per_100g ?? payload.salt_per_100g),
+        image_url: p.image_url ?? null,
         source: "user",
       });
       setNotFound(false);
       setShowRegisterForm(false);
+    } catch (err: any) {
+      toast.error("Errore nel salvataggio: " + (err.message || "Riprova"));
     }
     setRegistering(false);
   };

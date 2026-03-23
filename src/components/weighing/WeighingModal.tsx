@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
@@ -76,31 +76,27 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
       fat: Math.round(selectedProduct.fat_per_100g * factor * 10) / 10,
     };
     setSaving(true);
-    setSaving(true);
 
-    const { error } = await supabase.from("weighings").insert({
-      user_id: user.id,
-      product_id:
-        selectedProduct.source === "products" ? selectedProduct.id : null,
-      user_product_id:
-        selectedProduct.source === "user_products"
-          ? selectedProduct.id
-          : null,
-      product_name: selectedProduct.name,
-      grams: g,
-      meal_type: mealType as "breakfast" | "lunch" | "dinner" | "snack",
-      kcal: computedPreview.kcal,
-      protein: computedPreview.protein,
-      carbs: computedPreview.carbs,
-      fat: computedPreview.fat,
-    });
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/meals/add/", {
+        method: "POST",
+        body: {
+          product_id: selectedProduct.source === "products" ? selectedProduct.id : null,
+          user_product_id: selectedProduct.source === "user_products" ? selectedProduct.id : null,
+          product_name: selectedProduct.name,
+          grams: g,
+          meal_type: mealType,
+          kcal: computedPreview.kcal,
+          protein: computedPreview.protein,
+          carbs: computedPreview.carbs,
+          fat: computedPreview.fat,
+        },
+      });
       toast.success(`${selectedProduct.name} aggiunto!`);
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition"] });
       resetAndClose();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   }, [user, selectedProduct, preview, grams, mealType, queryClient]);
@@ -218,7 +214,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
           {!selectedProduct ? (
             <>
-              {/* Results label */}
               <p className="pb-2 text-xs text-muted-foreground">
                 Risultati della ricerca:
               </p>
@@ -263,7 +258,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                 </div>
               )}
 
-              {/* Product list */}
               <div className="space-y-1">
                 {results.map((product) => (
                   <button
@@ -271,7 +265,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                     onClick={() => setSelectedProduct(product)}
                     className="flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left transition-colors active:bg-muted"
                   >
-                    {/* Thumbnail placeholder */}
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-lg">
                       🍽️
                     </div>
@@ -293,10 +286,8 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
               </div>
             </>
           ) : (
-            /* ── Food info view (mockup faithful) ── */
             <div className="flex flex-1 flex-col">
               <div className="flex-1 space-y-4 overflow-y-auto pt-2">
-                {/* Product card with macros */}
                 <div className="rounded-2xl border bg-card p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-2xl">
@@ -314,7 +305,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                     </div>
                   </div>
 
-                  {/* Colored macro row */}
                   <div className="mt-4 grid grid-cols-4 gap-2 text-center">
                     <div>
                       <div className="text-lg font-bold" style={{ color: "#ef7b45" }}>
@@ -347,7 +337,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                   </div>
                 </div>
 
-                {/* Portion size */}
                 <div className="rounded-2xl border bg-card p-4">
                   <p className="mb-3 text-xs font-medium text-muted-foreground">Dimensione della porzione</p>
                   <div className="flex items-end justify-center gap-2">
@@ -362,7 +351,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                     />
                     <span className="mb-1 text-sm text-muted-foreground">g</span>
                   </div>
-                  {/* Unit selector */}
                   <div className="mt-4 flex justify-center gap-1">
                     {["oz", "ml", "lb.oz", "g", "fl.oz"].map((unit) => (
                       <button
@@ -381,7 +369,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                   </div>
                 </div>
 
-                {/* Nutrienti */}
                 <div>
                   <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">Nutrienti</p>
                   <div className="rounded-2xl border bg-card divide-y">
@@ -401,7 +388,6 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
                 </div>
               </div>
 
-              {/* Bottom bar */}
               <div className="flex items-center gap-3 border-t bg-card px-4 py-3">
                 <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border">
                   <Heart className="h-5 w-5 text-muted-foreground" />

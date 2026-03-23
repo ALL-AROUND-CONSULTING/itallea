@@ -9,7 +9,7 @@
  * the response as-is, wrapped with proper CORS headers.
  */
 
-const BACKEND_BASE_URL = "https://italea.test.b4web.biz";
+const BACKEND_BASE_URL = "https://api.itallea.b4web.biz";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

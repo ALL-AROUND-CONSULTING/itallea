@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiClient } from "@/lib/apiClient";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
@@ -63,12 +64,12 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("first_name, last_name, date_of_birth, sex, current_weight, height, target_weight, activity_level, target_kcal, target_protein, target_carbs, target_fat, water_goal_ml, phone, avatar_url")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
+    apiClient<any>("/api/app/vw_profiles/get/", {
+      method: "POST",
+      body: {},
+    })
+      .then((res) => {
+        const data = res.record ?? res;
         if (data) {
           setProfile(data as unknown as FullProfile);
           setFirstName(data.first_name ?? "");
@@ -84,7 +85,8 @@ const Profile = () => {
           setAvatarUrl(data.avatar_url ?? null);
         }
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,31 +125,30 @@ const Profile = () => {
     });
     const macros = calculateMacros(tdee);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dateOfBirth,
-        sex,
-        current_weight: parseFloat(weight),
-        height: parseFloat(height),
-        target_weight: parseFloat(targetWeight),
-        activity_level: activityLevel,
-        target_kcal: macros.kcal,
-        target_protein: macros.protein,
-        target_carbs: macros.carbs,
-        target_fat: macros.fat,
-        water_goal_ml: parseInt(waterGoal) || 2000,
-        phone: phone.trim() || null,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/updateProfile/", {
+        method: "POST",
+        body: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          date_of_birth: dateOfBirth,
+          sex,
+          current_weight: parseFloat(weight),
+          height: parseFloat(height),
+          target_weight: parseFloat(targetWeight),
+          activity_level: activityLevel,
+          target_kcal: macros.kcal,
+          target_protein: macros.protein,
+          target_carbs: macros.carbs,
+          target_fat: macros.fat,
+          water_goal_ml: parseInt(waterGoal) || 2000,
+          phone: phone.trim() || null,
+        },
+      });
       toast.success("Profilo aggiornato! Target ricalcolati.");
       await refreshProfile();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   };

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { RecipeList } from "@/components/recipes/RecipeList";
 import logoImg from "@/assets/logo-itallea.png";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,22 +108,26 @@ const MyProducts = () => {
 
   const fetchCustomCategories = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("user_recipe_categories")
-      .select("id, name, icon")
-      .eq("user_id", user.id)
-      .order("created_at");
-    setCustomCategories(
-      (data ?? []).map((c) => ({
-        id: c.id,
-        label: c.name,
-        icon: c.icon,
-        Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-          <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon}</span>
-        ),
-        isCustom: true,
-      }))
-    );
+    try {
+      const data = await apiClient<any>("/api/app/recipe_categories/get/", {
+        method: "POST",
+        body: {},
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      setCustomCategories(
+        records.map((c: any) => ({
+          id: c.id,
+          label: c.name,
+          icon: c.icon ?? "🍽️",
+          Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+            <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon ?? "🍽️"}</span>
+          ),
+          isCustom: true,
+        }))
+      );
+    } catch {
+      setCustomCategories([]);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -138,58 +142,61 @@ const MyProducts = () => {
       return;
     }
     setSavingCategory(true);
-    const { error } = await supabase.from("user_recipe_categories").insert({
-      user_id: user.id,
-      name,
-      icon: "🍽️",
-    });
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/recipe_categories/add/", {
+        method: "POST",
+        body: { name, icon: "🍽️" },
+      });
       toast.success("Categoria aggiunta!");
       setNewCategoryDialogOpen(false);
       setNewCategoryName("");
       fetchCustomCategories();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSavingCategory(false);
   };
 
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId || !user) return;
-    const { error } = await supabase
-      .from("user_recipe_categories")
-      .delete()
-      .eq("id", deleteCategoryId)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/recipe_categories/delete/", {
+        method: "POST",
+        body: { category_id: deleteCategoryId },
+      });
       toast.success("Categoria eliminata");
       fetchCustomCategories();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setDeleteCategoryId(null);
   };
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("user_products")
-      .select(
-        "id, name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, salt_per_100g"
-      )
-      .eq("user_id", user.id)
-      .order("name");
-    setProducts(
-      (data ?? []).map((p) => ({
-        ...p,
-        kcal_per_100g: Number(p.kcal_per_100g),
-        protein_per_100g: Number(p.protein_per_100g),
-        carbs_per_100g: Number(p.carbs_per_100g),
-        fat_per_100g: Number(p.fat_per_100g),
-        fiber_per_100g: Number(p.fiber_per_100g),
-        salt_per_100g: Number(p.salt_per_100g),
-      }))
-    );
+    try {
+      const data = await apiClient<any>("/api/app/products/get/", {
+        method: "POST",
+        body: {},
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      setProducts(
+        records.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          barcode: p.barcode ?? null,
+          kcal_per_100g: Number(p.kcal_per_100g),
+          protein_per_100g: Number(p.protein_per_100g),
+          carbs_per_100g: Number(p.carbs_per_100g),
+          fat_per_100g: Number(p.fat_per_100g),
+          fiber_per_100g: Number(p.fiber_per_100g),
+          salt_per_100g: Number(p.salt_per_100g),
+        }))
+      );
+    } catch {
+      setProducts([]);
+    }
     setLoading(false);
   }, [user]);
 
@@ -227,7 +234,6 @@ const MyProducts = () => {
     }
     setSaving(true);
     const payload = {
-      user_id: user.id,
       name: form.name.trim(),
       brand: form.brand.trim() || null,
       barcode: form.barcode.trim() || null,
@@ -238,38 +244,38 @@ const MyProducts = () => {
       fiber_per_100g: parseFloat(form.fiber_per_100g) || 0,
       salt_per_100g: parseFloat(form.salt_per_100g) || 0,
     };
-    let error;
-    if (editingId) {
-      ({ error } = await supabase
-        .from("user_products")
-        .update(payload)
-        .eq("id", editingId)
-        .eq("user_id", user.id));
-    } else {
-      ({ error } = await supabase.from("user_products").insert(payload));
-    }
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      if (editingId) {
+        await apiClient("/api/app/products/update/", {
+          method: "POST",
+          body: { product_id: editingId, ...payload },
+        });
+      } else {
+        await apiClient("/api/app/products/add/", {
+          method: "POST",
+          body: payload,
+        });
+      }
       toast.success(editingId ? "Prodotto aggiornato!" : "Prodotto creato!");
       setDialogOpen(false);
       fetchProducts();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setSaving(false);
   };
 
   const handleDelete = async () => {
     if (!deleteId || !user) return;
-    const { error } = await supabase
-      .from("user_products")
-      .delete()
-      .eq("id", deleteId)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Errore: " + error.message);
-    } else {
+    try {
+      await apiClient("/api/app/products/delete/", {
+        method: "POST",
+        body: { product_id: deleteId },
+      });
       toast.success("Prodotto eliminato");
       fetchProducts();
+    } catch (err: any) {
+      toast.error("Errore: " + (err.message || "Riprova"));
     }
     setDeleteId(null);
   };
@@ -284,19 +290,28 @@ const MyProducts = () => {
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          resolve(result.split(",")[1]); // Remove data:image/...;base64, prefix
+          resolve(result.split(",")[1]);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      const res = await supabase.functions.invoke("ocr-nutrition-label", {
-        method: "POST",
-        body: { image_base64: base64 },
-      });
-
-      if (res.error) throw res.error;
-      const n = res.data?.nutrition;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/ocr-nutrition-label`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: anonKey,
+          },
+          body: JSON.stringify({ image_base64: base64 }),
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const n = data?.nutrition;
       if (n) {
         setForm({
           name: n.name || form.name,

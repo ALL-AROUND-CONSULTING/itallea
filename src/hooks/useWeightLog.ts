@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type WeightEntry = {
@@ -18,16 +18,15 @@ export function useWeightLog() {
     queryKey: ["weight-log-history"],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weight_logs")
-        .select("id, weight_kg, logged_at")
-        .eq("user_id", user!.id)
-        .order("logged_at", { ascending: true })
-        .limit(90);
-      if (error) throw error;
-      return (data ?? []).map((d) => ({
-        ...d,
+      const data = await apiClient<any>("/api/app/weight_logs/get/", {
+        method: "POST",
+        body: {},
+      });
+      const records = Array.isArray(data) ? data : data.records ?? [];
+      return records.map((d: any) => ({
+        id: d.id,
         weight_kg: Number(d.weight_kg),
+        logged_at: d.logged_at,
       })) as WeightEntry[];
     },
     staleTime: 60_000,
@@ -35,12 +34,10 @@ export function useWeightLog() {
 
   const logWeight = useMutation({
     mutationFn: async (weightKg: number) => {
-      // Upsert: unique constraint on (user_id, logged_at)
-      const { error } = await supabase.from("weight_logs").upsert(
-        { user_id: user!.id, weight_kg: weightKg, logged_at: today },
-        { onConflict: "user_id,logged_at" }
-      );
-      if (error) throw error;
+      await apiClient("/api/app/weight_logs/add/", {
+        method: "POST",
+        body: { weight_kg: weightKg, logged_at: today },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["weight-log-history"] });
