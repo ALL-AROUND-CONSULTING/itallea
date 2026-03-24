@@ -15,7 +15,7 @@ export async function login(username: string, password: string): Promise<LoginRe
       expires_in: number;
       error?: string;
       error_description?: string;
-    }>("/oauth/token/", {
+    }>("/oauth/token", {
       method: "POST",
       body: {
         grant_type: "password",
