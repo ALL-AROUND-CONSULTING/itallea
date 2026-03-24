@@ -41,25 +41,24 @@ export function isTokenExpired(): boolean {
 
 // ── Low-level proxy call ───────────────────────────────────────
 
-async function proxyFetch(
+async function directFetch(
   path: string,
   method: string,
   body?: unknown,
   extraHeaders?: Record<string, string>
 ): Promise<Response> {
-  return fetch(PROXY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({
-      path,
-      method,
-      body,
-      headers: extraHeaders,
-    }),
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...extraHeaders,
+  };
+
+  const opts: RequestInit = { method, headers };
+
+  if (body && method !== "GET" && method !== "HEAD") {
+    opts.body = JSON.stringify(body);
+  }
+
+  return fetch(`${BACKEND_URL}${path}`, opts);
 }
 
 // ── Refresh logic (singleton promise to avoid concurrent refreshes) ──
