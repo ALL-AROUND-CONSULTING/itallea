@@ -1,49 +1,77 @@
 
 
-## Piano di implementazione: aggiornamenti dalla risposta della software house
+## Piano: Test CORS diretto e rimozione proxy
 
-### Cosa sappiamo ora
+### Cosa chiedono
 
-Dalla loro risposta e dal documento aggiornato:
+La software house vuole che:
+1. Testiamo se CORS funziona chiamando direttamente `api.itallea.b4web.biz` dal browser (senza proxy)
+2. Se funziona, rimuoviamo il proxy
+3. Gli forniamo un link web per provare l'app + un APK
 
-1. **client_id**: `019cf6e9-eb89-7231-8c1e-fd4c46d7ff07`
-2. **client_secret**: `L2EtxKyDGiOmrVVqWytsblhNbdVlUm4muJWoDxKQ`
-3. **Reset password**: `POST /api/password/email` con body `{ "email": "..." }`
-4. **Ricerca prodotti**: Usare `POST /api/app/products/get` con body `{ "search": "..." }` (non esiste un endpoint `/search/` separato)
-5. **Eliminazione/modifica pasto**: Non ancora previsti
-6. **Eliminazione account**: Previsto ma non ancora implementato
-7. **CORS**: Dicono di non avere problemi (testano con Postman — ma Postman non ha CORS). Da verificare, per ora teniamo il proxy.
+### Cosa faremo
 
-### Problemi da fixare nel codice
+**Step 1 — Refactor `apiClient.ts` per chiamate dirette**
 
-**1. Sostituire i PLACEHOLDER OAuth** (2 file)
-- `src/lib/authService.ts` riga 22-23: sostituire `PLACEHOLDER_CLIENT_ID` e `PLACEHOLDER_CLIENT_SECRET` con i valori reali
-- `src/lib/apiClient.ts` riga 77-78: stessa sostituzione nel refresh token
+Sostituire `proxyFetch()` con chiamate `fetch()` dirette a `https://api.itallea.b4web.biz`. Il proxy resta nel codice ma non viene più usato.
 
-**2. Fix ricerca prodotti** (`src/hooks/useProductSearch.ts`)
-- Endpoint sbagliato: usa `/api/app/products/search/` che non esiste
-- Deve usare `/api/app/products/get` con body `{ "search": query }`
+Modifiche in `src/lib/apiClient.ts`:
+- Nuova costante `BACKEND_URL = "https://api.itallea.b4web.biz"`
+- Riscrivere `proxyFetch()` → `directFetch()` che fa `fetch(BACKEND_URL + path, ...)` direttamente
+- Rimuovere dipendenza da `PROXY_URL` e `SUPABASE_ANON_KEY`
+- Mantenere tutta la logica di auth/refresh/retry invariata
 
-**3. Fix registrazione** (`src/pages/Register.tsx`)
-- Invia il campo `name` nel body, ma la documentazione dice che il nome viene auto-impostato dalla parte locale dell'email. Il body richiede solo `email`, `password`, `password_confirmation`
-- Possiamo comunque tenere il campo name nel form per UX, ma non inviarlo nel body API
+**Step 2 — Aggiornare `capacitor.config.json`**
 
-**4. Migrare ForgotPassword** (`src/pages/ForgotPassword.tsx`)
-- Attualmente usa `supabase.auth.resetPasswordForEmail`
-- Deve chiamare `POST /api/password/email` con body `{ "email": "..." }` via `apiClient`
-- Nota: la software house non ha specificato un endpoint per il reset vero e proprio (impostare nuova password), solo per l'invio email. ResetPassword.tsx resta su Supabase per ora.
+L'`appId` va cambiato da `app.lovable.575945cfca0842dc852156af458a2079` a qualcosa tipo `com.itallea.app` (più professionale per gli store). Il `server.url` punta già al progetto Lovable pubblicato.
 
-**5. Nota sulla nota del documento**: La software house dice che il sistema email non è ancora attivo — il codice temporaneo per la verifica è `000000`.
+**Step 3 — Link e APK**
 
-### Dettaglio tecnico delle modifiche
+- **Link web**: L'app è già pubblicata su `https://itallea.lovable.app` — possiamo condividere questo
+- **APK**: Serve un build Capacitor Android. Posso preparare le istruzioni ma il build va fatto localmente con Android Studio
+
+### Dettaglio tecnico — `apiClient.ts` refactor
+
+```typescript
+// PRIMA (proxy):
+async function proxyFetch(path, method, body, headers) {
+  return fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ path, method, body, headers }),
+  });
+}
+
+// DOPO (diretto):
+const BACKEND_URL = "https://api.itallea.b4web.biz";
+
+async function directFetch(path, method, body, headers) {
+  const opts: RequestInit = {
+    method,
+    headers: { "Content-Type": "application/json", ...headers },
+  };
+  if (body && method !== "GET") opts.body = JSON.stringify(body);
+  return fetch(BACKEND_URL + path, opts);
+}
+```
+
+Tutti i punti che chiamano `proxyFetch` vengono aggiornati a `directFetch`. La logica di refresh token e retry 401 resta identica.
+
+### File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/lib/authService.ts` | client_id → `019cf6e9-...`, client_secret → `L2EtxKyDGi...` |
-| `src/lib/apiClient.ts` | Stessa sostituzione nel refresh flow |
-| `src/hooks/useProductSearch.ts` | Path da `/api/app/products/search/` a `/api/app/products/get`, body da `{ query }` a `{ search: query }` |
-| `src/pages/Register.tsx` | Rimuovere `name` dal body API (tenere nel form per UX futura) |
-| `src/pages/ForgotPassword.tsx` | Sostituire `supabase.auth` con `apiClient("/api/password/email", ...)` |
+| `src/lib/apiClient.ts` | Sostituire proxy con chiamate dirette |
+| `capacitor.config.json` | Aggiornare `appId` |
 
-5 file, modifiche chirurgiche. Nessuna riscrittura necessaria.
+### Rischio
+
+Se CORS non funziona, vedremo errori tipo `Access-Control-Allow-Origin` nella console. In quel caso ripristiniamo il proxy e comunichiamo alla software house gli errori esatti.
+
+### Risposta per la software house
+
+Dopo il test, prepareremo una risposta con:
+- Conferma CORS funzionante (o errori specifici)
+- Link web: `https://itallea.lovable.app`
+- Per l'APK: istruzioni su come generarlo dal repository (serve Android Studio)
 
