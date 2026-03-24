@@ -41,7 +41,7 @@ export async function login(username: string, password: string): Promise<LoginRe
 
 export async function logout() {
   try {
-    await apiClient("/api/logout/", { method: "POST" });
+    await apiClient("/api/logout", { method: "POST" });
   } catch {
     // ignore — clear tokens regardless
   }
