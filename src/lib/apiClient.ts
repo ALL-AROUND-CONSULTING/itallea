@@ -5,8 +5,7 @@
  * - Intercepts 401 → attempts token refresh → retries original request once
  */
 
-const PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/backend-proxy`;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+const BACKEND_URL = "https://api.itallea.b4web.biz";
 
 const TOKEN_KEY = "italea_access_token";
 const REFRESH_KEY = "italea_refresh_token";
