@@ -1,11 +1,12 @@
 /**
  * Centralized HTTP client for the custom REST backend.
- * - Calls the backend directly (no proxy)
+ * - Routes all calls through the Supabase edge-function proxy to avoid CORS
  * - Auto-injects Authorization: Bearer <access_token>
  * - Intercepts 401 → attempts token refresh → retries original request once
  */
 
-const BACKEND_URL = "https://api.itallea.b4web.biz";
+const PROXY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/backend-proxy`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const TOKEN_KEY = "italea_access_token";
 const REFRESH_KEY = "italea_refresh_token";
@@ -39,26 +40,27 @@ export function isTokenExpired(): boolean {
   return Date.now() >= Number(exp);
 }
 
-// ── Direct fetch to backend ────────────────────────────────────
+// ── Low-level proxy call ───────────────────────────────────────
 
-async function directFetch(
+async function proxyFetch(
   path: string,
   method: string,
   body?: unknown,
   extraHeaders?: Record<string, string>
 ): Promise<Response> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...extraHeaders,
-  };
-
-  const opts: RequestInit = { method, headers };
-
-  if (body && method !== "GET" && method !== "HEAD") {
-    opts.body = JSON.stringify(body);
-  }
-
-  return fetch(`${BACKEND_URL}${path}`, opts);
+  return fetch(PROXY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({
+      path,
+      method,
+      body,
+      headers: extraHeaders,
+    }),
+  });
 }
 
 // ── Refresh logic (singleton promise to avoid concurrent refreshes) ──
@@ -70,7 +72,7 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refresh) return false;
 
   try {
-    const res = await directFetch("/oauth/token/", "POST", {
+    const res = await proxyFetch("/oauth/token/", "POST", {
       grant_type: "refresh_token",
       client_id: "019cf6e9-eb89-7231-8c1e-fd4c46d7ff07",
       client_secret: "L2EtxKyDGiOmrVVqWytsblhNbdVlUm4muJWoDxKQ",
@@ -129,14 +131,14 @@ export async function apiClient<T = any>(
     }
   }
 
-  let res = await directFetch(path, method, body, upstreamHeaders);
+  let res = await proxyFetch(path, method, body, upstreamHeaders);
 
   // If 401, try refresh once and retry
   if (res.status === 401 && !skipAuth) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       upstreamHeaders["Authorization"] = `Bearer ${getAccessToken()}`;
-      res = await directFetch(path, method, body, upstreamHeaders);
+      res = await proxyFetch(path, method, body, upstreamHeaders);
     } else {
       window.dispatchEvent(new Event("auth:logout"));
       throw new Error("Unauthenticated");
