@@ -1,77 +1,40 @@
 
 
-## Piano: Test CORS diretto e rimozione proxy
+## Piano: Ripristino proxy + comunicazione software house
 
-### Cosa chiedono
+### Situazione attuale
 
-La software house vuole che:
-1. Testiamo se CORS funziona chiamando direttamente `api.itallea.b4web.biz` dal browser (senza proxy)
-2. Se funziona, rimuoviamo il proxy
-3. Gli forniamo un link web per provare l'app + un APK
+Ho testato direttamente dal browser la chiamata a `https://api.itallea.b4web.biz/oauth/token` (POST, senza trailing slash). Il risultato è:
+
+```
+Access to fetch at 'https://api.itallea.b4web.biz/oauth/token' from origin '...' 
+has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present 
+on the requested resource.
+```
+
+**CORS non funziona.** Il server non invia gli header necessari. Il problema è lato software house, non nostro.
 
 ### Cosa faremo
 
-**Step 1 — Refactor `apiClient.ts` per chiamate dirette**
+**Step 1 — Ripristinare il proxy in `apiClient.ts`**
 
-Sostituire `proxyFetch()` con chiamate `fetch()` dirette a `https://api.itallea.b4web.biz`. Il proxy resta nel codice ma non viene più usato.
+Rimettere la logica `proxyFetch` che passa attraverso l'Edge Function `backend-proxy`, così l'app torna funzionante immediatamente.
 
-Modifiche in `src/lib/apiClient.ts`:
-- Nuova costante `BACKEND_URL = "https://api.itallea.b4web.biz"`
-- Riscrivere `proxyFetch()` → `directFetch()` che fa `fetch(BACKEND_URL + path, ...)` direttamente
-- Rimuovere dipendenza da `PROXY_URL` e `SUPABASE_ANON_KEY`
-- Mantenere tutta la logica di auth/refresh/retry invariata
+**Step 2 — Verificare che il login funzioni con il proxy**
 
-**Step 2 — Aggiornare `capacitor.config.json`**
-
-L'`appId` va cambiato da `app.lovable.575945cfca0842dc852156af458a2079` a qualcosa tipo `com.itallea.app` (più professionale per gli store). Il `server.url` punta già al progetto Lovable pubblicato.
-
-**Step 3 — Link e APK**
-
-- **Link web**: L'app è già pubblicata su `https://itallea.lovable.app` — possiamo condividere questo
-- **APK**: Serve un build Capacitor Android. Posso preparare le istruzioni ma il build va fatto localmente con Android Studio
-
-### Dettaglio tecnico — `apiClient.ts` refactor
-
-```typescript
-// PRIMA (proxy):
-async function proxyFetch(path, method, body, headers) {
-  return fetch(PROXY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ path, method, body, headers }),
-  });
-}
-
-// DOPO (diretto):
-const BACKEND_URL = "https://api.itallea.b4web.biz";
-
-async function directFetch(path, method, body, headers) {
-  const opts: RequestInit = {
-    method,
-    headers: { "Content-Type": "application/json", ...headers },
-  };
-  if (body && method !== "GET") opts.body = JSON.stringify(body);
-  return fetch(BACKEND_URL + path, opts);
-}
-```
-
-Tutti i punti che chiamano `proxyFetch` vengono aggiornati a `directFetch`. La logica di refresh token e retry 401 resta identica.
+Testare che il flusso login → proxy → backend funzioni correttamente.
 
 ### File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/lib/apiClient.ts` | Sostituire proxy con chiamate dirette |
-| `capacitor.config.json` | Aggiornare `appId` |
+| `src/lib/apiClient.ts` | Ripristinare `proxyFetch` via Edge Function |
+| `src/lib/authService.ts` | Aggiornare i path se necessario |
 
-### Rischio
+### Mail per la software house
 
-Se CORS non funziona, vedremo errori tipo `Access-Control-Allow-Origin` nella console. In quel caso ripristiniamo il proxy e comunichiamo alla software house gli errori esatti.
-
-### Risposta per la software house
-
-Dopo il test, prepareremo una risposta con:
-- Conferma CORS funzionante (o errori specifici)
-- Link web: `https://itallea.lovable.app`
-- Per l'APK: istruzioni su come generarlo dal repository (serve Android Studio)
+Dopo il ripristino, ti preparerò la mail con:
+- L'errore CORS esatto dal browser
+- Le istruzioni tecniche precise su cosa devono configurare
+- Conferma che con Postman funziona ma il browser richiede CORS
 
