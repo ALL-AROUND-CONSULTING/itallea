@@ -1,6 +1,6 @@
 /**
  * Centralized HTTP client for the custom REST backend.
- * - Routes all calls through the Supabase edge-function proxy to avoid CORS
+ * - Calls api.itallea.b4web.biz directly
  * - Auto-injects Authorization: Bearer <access_token>
  * - Intercepts 401 → attempts token refresh → retries original request once
  */
@@ -39,7 +39,7 @@ export function isTokenExpired(): boolean {
   return Date.now() >= Number(exp);
 }
 
-// ── Low-level proxy call ───────────────────────────────────────
+// ── Direct fetch to backend ───────────────────────────────────
 
 async function directFetch(
   path: string,
