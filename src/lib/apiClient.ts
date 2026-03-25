@@ -1,13 +1,11 @@
 /**
  * Centralized HTTP client for the custom REST backend.
- * - Routes through Edge Function proxy to bypass CORS
+ * - Direct calls to the backend (CORS now enabled)
  * - Auto-injects Authorization: Bearer <access_token>
  * - Intercepts 401 → attempts token refresh → retries original request once
  */
 
 const BACKEND_URL = "https://api.itallea.b4web.biz";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const TOKEN_KEY = "italea_access_token";
 const REFRESH_KEY = "italea_refresh_token";
@@ -41,30 +39,32 @@ export function isTokenExpired(): boolean {
   return Date.now() >= Number(exp);
 }
 
-// ── Proxy fetch via Edge Function ──────────────────────────────
+// ── Direct fetch to backend ───────────────────────────────────
 
-async function proxyFetch(
+function backendFetch(
   path: string,
   method: string,
   body?: unknown,
   extraHeaders?: Record<string, string>
 ): Promise<Response> {
-  // Strip trailing slash to avoid 301 redirects on the upstream server
   const cleanPath = path.endsWith("/") ? path.slice(0, -1) : path;
 
-  return fetch(`${SUPABASE_URL}/functions/v1/backend-proxy`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({
-      path: cleanPath,
-      method,
-      body,
-      headers: extraHeaders,
-    }),
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...extraHeaders,
+  };
+
+  const fetchOptions: RequestInit = {
+    method,
+    headers,
+    credentials: "include",
+  };
+
+  if (body && method !== "GET" && method !== "HEAD") {
+    fetchOptions.body = JSON.stringify(body);
+  }
+
+  return fetch(`${BACKEND_URL}${cleanPath}`, fetchOptions);
 }
 
 // ── Refresh logic (singleton promise to avoid concurrent refreshes) ──
@@ -76,7 +76,7 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refresh) return false;
 
   try {
-    const res = await proxyFetch("/oauth/token", "POST", {
+    const res = await backendFetch("/oauth/token", "POST", {
       grant_type: "refresh_token",
       client_id: "019cf6e9-eb89-7231-8c1e-fd4c46d7ff07",
       client_secret: "L2EtxKyDGiOmrVVqWytsblhNbdVlUm4muJWoDxKQ",
@@ -123,9 +123,7 @@ export async function apiClient<T = any>(
 ): Promise<T> {
   const { skipAuth = false, headers: extraHeaders = {}, method = "GET", body } = options;
 
-  const upstreamHeaders: Record<string, string> = {
-    ...extraHeaders,
-  };
+  const upstreamHeaders: Record<string, string> = { ...extraHeaders };
 
   if (!skipAuth) {
     await ensureFreshToken();
@@ -135,14 +133,14 @@ export async function apiClient<T = any>(
     }
   }
 
-  let res = await proxyFetch(path, method, body, upstreamHeaders);
+  let res = await backendFetch(path, method, body, upstreamHeaders);
 
   // If 401, try refresh once and retry
   if (res.status === 401 && !skipAuth) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       upstreamHeaders["Authorization"] = `Bearer ${getAccessToken()}`;
-      res = await proxyFetch(path, method, body, upstreamHeaders);
+      res = await backendFetch(path, method, body, upstreamHeaders);
     } else {
       window.dispatchEvent(new Event("auth:logout"));
       throw new Error("Unauthenticated");
