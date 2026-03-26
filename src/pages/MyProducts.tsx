@@ -109,7 +109,7 @@ const MyProducts = () => {
   const fetchCustomCategories = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await apiClient<any>("/api/app/recipe_categories/get/", {
+      const data = await apiClient<any>("/api/app/recipe_categories/get", {
         method: "POST",
         body: {},
       });
@@ -143,7 +143,7 @@ const MyProducts = () => {
     }
     setSavingCategory(true);
     try {
-      await apiClient("/api/app/recipe_categories/add/", {
+      await apiClient("/api/app/recipe_categories/add", {
         method: "POST",
         body: { name },
       });
@@ -160,7 +160,7 @@ const MyProducts = () => {
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId || !user) return;
     try {
-      await apiClient("/api/app/recipe_categories/delete/", {
+      await apiClient("/api/app/recipe_categories/delete", {
         method: "POST",
         body: { id: deleteCategoryId },
       });
@@ -175,7 +175,7 @@ const MyProducts = () => {
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await apiClient<any>("/api/app/products/get/", {
+      const data = await apiClient<any>("/api/app/products/get", {
         method: "POST",
         body: {},
       });
@@ -251,7 +251,7 @@ const MyProducts = () => {
           body: { id: editingId, ...payload },
         });
       } else {
-        await apiClient("/api/app/products/add/", {
+        await apiClient("/api/app/products/add", {
           method: "POST",
           body: payload,
         });

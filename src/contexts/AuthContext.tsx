@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const data = await apiClient<any>("/api/app/vw_profiles/get/", {
+      const data = await apiClient<any>("/api/app/vw_profiles/get", {
         method: "POST",
         body: {},
       });

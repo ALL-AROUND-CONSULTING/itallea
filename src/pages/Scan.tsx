@@ -284,7 +284,7 @@ const Scan = () => {
         fiber_per_100g: parseFloat(registerData.fiber) || 0,
         salt_per_100g: parseFloat(registerData.salt) || 0,
       };
-      const data = await apiClient<any>("/api/app/products/add/", {
+      const data = await apiClient<any>("/api/app/products/add", {
         method: "POST",
         body: payload,
       });

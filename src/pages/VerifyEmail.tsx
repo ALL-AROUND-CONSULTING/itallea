@@ -94,7 +94,7 @@ const VerifyEmail = () => {
       return;
     }
     try {
-      await apiClient("/api/register/resend/", {
+      await apiClient("/api/register/resend", {
         method: "POST",
         body: { email },
         skipAuth: true,

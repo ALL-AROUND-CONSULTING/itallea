@@ -65,7 +65,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    apiClient<any>("/api/app/vw_profiles/get/", {
+    apiClient<any>("/api/app/vw_profiles/get", {
       method: "POST",
       body: {},
     })
