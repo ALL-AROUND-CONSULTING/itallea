@@ -30,7 +30,7 @@ export function useWaterHistory(range: RangeKey) {
       const startDate = format(subDays(today, days - 1), "yyyy-MM-dd");
       const endDate = format(today, "yyyy-MM-dd");
 
-      const data = await apiClient<any>("/api/app/water_logs/summary/", {
+      const data = await apiClient<any>("/api/app/water_logs/summary", {
         method: "POST",
         body: { start_date: startDate, end_date: endDate },
       });
@@ -38,10 +38,9 @@ export function useWaterHistory(range: RangeKey) {
       const records = Array.isArray(data) ? data : data.records ?? [];
       const byDay: Record<string, number> = {};
       for (const r of records) {
-        byDay[r.date] = r.total_ml ?? 0;
+        byDay[r.date] = r.total_ml ?? r.value ?? 0;
       }
 
-      // Build full date range
       const dates: string[] = [];
       for (let i = days - 1; i >= 0; i--) {
         dates.push(format(subDays(today, i), "yyyy-MM-dd"));

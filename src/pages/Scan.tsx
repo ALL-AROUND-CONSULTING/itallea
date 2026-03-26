@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
+import { toApiMealType } from "@/lib/apiMappings";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,17 +233,13 @@ const Scan = () => {
     setSaving(true);
 
     try {
-      await apiClient("/api/app/meals/add/", {
+      await apiClient("/api/app/meals/add", {
         method: "POST",
         body: {
           product_id: product.id,
-          product_name: product.name,
+          recipe_id: null,
           grams: parseFloat(grams),
-          meal_type: mealType,
-          kcal: preview.kcal,
-          protein: preview.protein,
-          carbs: preview.carbs,
-          fat: preview.fat,
+          meal_type: toApiMealType(mealType),
         },
       });
       toast.success(`${product.name} aggiunto!`);

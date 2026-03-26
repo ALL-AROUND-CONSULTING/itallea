@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiClient } from "@/lib/apiClient";
+import { toApiMealType } from "@/lib/apiMappings";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -74,16 +75,12 @@ export function EditWeighingModal({
     }
     setSaving(true);
     try {
-      await apiClient("/api/app/meals/update/", {
+      await apiClient("/api/app/meals/update", {
         method: "POST",
         body: {
-          meal_id: item.id,
+          id: item.id,
           grams: newGrams,
-          meal_type: meal,
-          kcal: preview.kcal,
-          protein: preview.protein,
-          carbs: preview.carbs,
-          fat: preview.fat,
+          meal_type: toApiMealType(meal),
         },
       });
       toast.success("Pesata aggiornata!");

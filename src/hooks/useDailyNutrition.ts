@@ -19,7 +19,7 @@ export function useDailyNutrition(date?: string) {
     queryKey: ["daily-nutrition", dateStr],
     enabled: !!user,
     queryFn: async () => {
-      const data = await apiClient<any>("/api/app/meals/summary/", {
+      const data = await apiClient<any>("/api/app/meals/summary", {
         method: "POST",
         body: { start_date: dateStr, end_date: dateStr },
       });

@@ -38,8 +38,8 @@ export function useRecipes(category?: string) {
     setLoading(true);
     try {
       const body: any = {};
-      if (category) body.category = category;
-      const data = await apiClient<any>("/api/app/recipes/get/", {
+      if (category) body.recipe_categories_id = category;
+      const data = await apiClient<any>("/api/app/recipes/get", {
         method: "POST",
         body,
       });
@@ -47,7 +47,7 @@ export function useRecipes(category?: string) {
       setRecipes(records.map((r: any) => ({
         id: r.id,
         name: r.name,
-        category: r.category,
+        category: r.category ?? r.recipe_categories_id,
         servings: Number(r.servings ?? 1),
         notes: r.notes ?? null,
         created_at: r.created_at,
@@ -64,21 +64,21 @@ export function useRecipes(category?: string) {
 
   const fetchRecipeWithIngredients = useCallback(async (recipeId: string): Promise<Recipe | null> => {
     try {
-      const data = await apiClient<any>("/api/app/recipes/get-detail/", {
+      const data = await apiClient<any>("/api/app/recipes/get-detail", {
         method: "POST",
-        body: { recipe_id: recipeId },
+        body: { id: recipeId },
       });
       const r = data.record ?? data;
       if (!r) return null;
 
       const ingredients: RecipeIngredient[] = (r.ingredients ?? []).map((i: any) => ({
         id: i.id,
-        product_name: i.product_name,
+        product_name: i.product_name ?? i.name,
         grams: Number(i.grams),
-        kcal: Number(i.kcal),
-        protein: Number(i.protein),
-        carbs: Number(i.carbs),
-        fat: Number(i.fat),
+        kcal: Number(i.kcal ?? 0),
+        protein: Number(i.protein ?? 0),
+        carbs: Number(i.carbs ?? 0),
+        fat: Number(i.fat ?? 0),
         product_id: i.product_id ?? null,
         user_product_id: i.user_product_id ?? null,
       }));
@@ -86,7 +86,7 @@ export function useRecipes(category?: string) {
       return {
         id: r.id,
         name: r.name,
-        category: r.category,
+        category: r.category ?? r.recipe_categories_id,
         servings: Number(r.servings ?? 1),
         notes: r.notes ?? null,
         created_at: r.created_at,
@@ -110,9 +110,17 @@ export function useRecipes(category?: string) {
   ) => {
     if (!user) return null;
     try {
-      const data = await apiClient<any>("/api/app/recipes/add/", {
+      const data = await apiClient<any>("/api/app/recipes/add", {
         method: "POST",
-        body: { name, category, servings, notes, ingredients },
+        body: {
+          name,
+          recipe_categories_id: category,
+          notes,
+          ingredients: ingredients.map((i) => ({
+            product_id: i.product_id,
+            grams: i.grams,
+          })),
+        },
       });
       await fetchRecipes();
       return data.id ?? data.record?.id ?? null;
@@ -124,9 +132,9 @@ export function useRecipes(category?: string) {
   const deleteRecipe = useCallback(async (recipeId: string) => {
     if (!user) return;
     try {
-      await apiClient("/api/app/recipes/delete/", {
+      await apiClient("/api/app/recipes/delete", {
         method: "POST",
-        body: { recipe_id: recipeId },
+        body: { id: recipeId },
       });
       await fetchRecipes();
     } catch {}

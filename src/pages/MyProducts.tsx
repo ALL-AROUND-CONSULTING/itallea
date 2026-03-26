@@ -145,7 +145,7 @@ const MyProducts = () => {
     try {
       await apiClient("/api/app/recipe_categories/add/", {
         method: "POST",
-        body: { name, icon: "🍽️" },
+        body: { name },
       });
       toast.success("Categoria aggiunta!");
       setNewCategoryDialogOpen(false);
@@ -162,7 +162,7 @@ const MyProducts = () => {
     try {
       await apiClient("/api/app/recipe_categories/delete/", {
         method: "POST",
-        body: { category_id: deleteCategoryId },
+        body: { id: deleteCategoryId },
       });
       toast.success("Categoria eliminata");
       fetchCustomCategories();
@@ -246,9 +246,9 @@ const MyProducts = () => {
     };
     try {
       if (editingId) {
-        await apiClient("/api/app/products/update/", {
+        await apiClient("/api/app/products/update", {
           method: "POST",
-          body: { product_id: editingId, ...payload },
+          body: { id: editingId, ...payload },
         });
       } else {
         await apiClient("/api/app/products/add/", {
@@ -268,9 +268,9 @@ const MyProducts = () => {
   const handleDelete = async () => {
     if (!deleteId || !user) return;
     try {
-      await apiClient("/api/app/products/delete/", {
+      await apiClient("/api/app/products/delete", {
         method: "POST",
-        body: { product_id: deleteId },
+        body: { id: deleteId },
       });
       toast.success("Prodotto eliminato");
       fetchProducts();
