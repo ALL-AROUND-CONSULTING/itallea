@@ -73,7 +73,7 @@ const emptyForm = {
   salt_per_100g: "",
 };
 
-type RecipeCategory = { label: string; icon: string; Illustration: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; isCustom?: boolean; id?: string };
+type RecipeCategory = { label: string; icon: string; Illustration: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; isCustom?: boolean; id?: string; apiId?: number | string };
 const DEFAULT_CATEGORIES: RecipeCategory[] = [
   { label: "Antipasti", icon: "🍢", Illustration: AntipastiIllustration },
   { label: "Primi", icon: "🍝", Illustration: PrimiIllustration },
@@ -114,17 +114,40 @@ const MyProducts = () => {
         body: {},
       });
       const records = Array.isArray(data) ? data : data.records ?? [];
-      setCustomCategories(
-        records.map((c: any) => ({
-          id: c.id,
-          label: c.name,
-          icon: c.icon ?? "🍽️",
-          Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-            <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon ?? "🍽️"}</span>
-          ),
-          isCustom: true,
-        }))
-      );
+
+      // Separate default-matching categories from truly custom ones
+      const defaultNames = DEFAULT_CATEGORIES.map((d) => d.label.toLowerCase());
+      const apiCategories: RecipeCategory[] = [];
+      const defaultApiIds: Record<string, number | string> = {};
+
+      for (const c of records) {
+        const nameLC = (c.name ?? "").toLowerCase();
+        if (defaultNames.includes(nameLC)) {
+          // Map API id to default category by name
+          defaultApiIds[nameLC] = c.id;
+        } else {
+          apiCategories.push({
+            id: c.id,
+            apiId: c.id,
+            label: c.name,
+            icon: c.icon ?? "🍽️",
+            Illustration: ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+              <span className={className} style={{ fontSize: "3rem", lineHeight: 1, ...style }}>{c.icon ?? "🍽️"}</span>
+            ),
+            isCustom: true,
+          });
+        }
+      }
+
+      // Enrich default categories with their API ids
+      for (const dc of DEFAULT_CATEGORIES) {
+        const key = dc.label.toLowerCase();
+        if (defaultApiIds[key]) {
+          dc.apiId = defaultApiIds[key];
+        }
+      }
+
+      setCustomCategories(apiCategories);
     } catch {
       setCustomCategories([]);
     }
@@ -373,7 +396,7 @@ const MyProducts = () => {
               </div>
             </div>
           </div>
-          <RecipeList category={selectedCategory.label} categoryIcon={selectedCategory.icon} />
+          <RecipeList category={selectedCategory.label} categoryId={selectedCategory.apiId ?? selectedCategory.id ?? selectedCategory.label} categoryIcon={selectedCategory.icon} />
         </div>
       </>
     );
