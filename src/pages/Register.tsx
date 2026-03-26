@@ -42,7 +42,7 @@ const Register = () => {
     }
     setSubmitting(true);
     try {
-      await apiClient("/api/register/", {
+      await apiClient("/api/register", {
         method: "POST",
         body: { email, password, password_confirmation: confirmPassword },
         skipAuth: true,

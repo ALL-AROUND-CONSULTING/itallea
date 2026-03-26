@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
+import { toApiGender, toApiActivity } from "@/lib/apiMappings";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Camera, Loader2 } from "lucide-react";
 
@@ -80,24 +81,23 @@ const Onboarding = () => {
     const macros = calculateMacros(tdee);
 
     try {
-      await apiClient("/api/updateProfile/", {
+      await apiClient("/api/updateProfile", {
         method: "POST",
         body: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          date_of_birth: dateOfBirth || null,
-          sex: sex || null,
-          current_weight: parseFloat(weight),
+          birthdate: dateOfBirth || null,
+          gender: sex ? toApiGender(sex) : null,
+          weight: parseFloat(weight),
           height: parseFloat(height),
           target_weight: targetWeight ? parseFloat(targetWeight) : null,
-          activity_level: activityLevel || null,
+          activity_level: activityLevel ? toApiActivity(activityLevel) : null,
           target_kcal: macros.kcal,
           target_protein: macros.protein,
           target_carbs: macros.carbs,
           target_fat: macros.fat,
-          phone: phone.trim() ? "+39" + phone.trim() : null,
-          avatar_url: avatarUrl,
-          onboarding_completed: true,
+          target_water: 2000,
+          phone: phone.trim() ? "+39 " + phone.trim() : null,
         },
       });
     } catch (err: any) {

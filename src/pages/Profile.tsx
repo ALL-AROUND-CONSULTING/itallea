@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateTDEE, calculateMacros, calculateAge } from "@/lib/nutrition";
+import { toApiGender, toApiActivity, fromApiGender, fromApiActivity } from "@/lib/apiMappings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +65,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    apiClient<any>("/api/app/vw_profiles/get/", {
+    apiClient<any>("/api/app/vw_profiles/get", {
       method: "POST",
       body: {},
     })
@@ -74,13 +75,13 @@ const Profile = () => {
           setProfile(data as unknown as FullProfile);
           setFirstName(data.first_name ?? "");
           setLastName(data.last_name ?? "");
-          setDateOfBirth(data.date_of_birth ?? "");
-          setSex(data.sex ?? "");
-          setWeight(data.current_weight?.toString() ?? "");
+          setDateOfBirth(data.birthdate ?? data.date_of_birth ?? "");
+          setSex(fromApiGender(data.gender ?? data.sex ?? ""));
+          setWeight((data.weight ?? data.current_weight)?.toString() ?? "");
           setHeight(data.height?.toString() ?? "");
           setTargetWeight(data.target_weight?.toString() ?? "");
-          setActivityLevel(data.activity_level ?? "");
-          setWaterGoal(data.water_goal_ml?.toString() ?? "2000");
+          setActivityLevel(fromApiActivity(data.activity_level ?? ""));
+          setWaterGoal((data.target_water ?? data.water_goal_ml)?.toString() ?? "2000");
           setPhone(data.phone ?? "");
           setAvatarUrl(data.avatar_url ?? null);
         }
@@ -126,22 +127,22 @@ const Profile = () => {
     const macros = calculateMacros(tdee);
 
     try {
-      await apiClient("/api/updateProfile/", {
+      await apiClient("/api/updateProfile", {
         method: "POST",
         body: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          date_of_birth: dateOfBirth,
-          sex,
-          current_weight: parseFloat(weight),
+          birthdate: dateOfBirth,
+          gender: toApiGender(sex),
+          weight: parseFloat(weight),
           height: parseFloat(height),
           target_weight: parseFloat(targetWeight),
-          activity_level: activityLevel,
+          activity_level: toApiActivity(activityLevel),
           target_kcal: macros.kcal,
           target_protein: macros.protein,
           target_carbs: macros.carbs,
           target_fat: macros.fat,
-          water_goal_ml: parseInt(waterGoal) || 2000,
+          target_water: parseInt(waterGoal) || 2000,
           phone: phone.trim() || null,
         },
       });

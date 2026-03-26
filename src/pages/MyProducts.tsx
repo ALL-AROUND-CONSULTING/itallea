@@ -109,7 +109,7 @@ const MyProducts = () => {
   const fetchCustomCategories = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await apiClient<any>("/api/app/recipe_categories/get/", {
+      const data = await apiClient<any>("/api/app/recipe_categories/get", {
         method: "POST",
         body: {},
       });
@@ -143,9 +143,9 @@ const MyProducts = () => {
     }
     setSavingCategory(true);
     try {
-      await apiClient("/api/app/recipe_categories/add/", {
+      await apiClient("/api/app/recipe_categories/add", {
         method: "POST",
-        body: { name, icon: "🍽️" },
+        body: { name },
       });
       toast.success("Categoria aggiunta!");
       setNewCategoryDialogOpen(false);
@@ -160,9 +160,9 @@ const MyProducts = () => {
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId || !user) return;
     try {
-      await apiClient("/api/app/recipe_categories/delete/", {
+      await apiClient("/api/app/recipe_categories/delete", {
         method: "POST",
-        body: { category_id: deleteCategoryId },
+        body: { id: deleteCategoryId },
       });
       toast.success("Categoria eliminata");
       fetchCustomCategories();
@@ -175,7 +175,7 @@ const MyProducts = () => {
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await apiClient<any>("/api/app/products/get/", {
+      const data = await apiClient<any>("/api/app/products/get", {
         method: "POST",
         body: {},
       });
@@ -246,12 +246,12 @@ const MyProducts = () => {
     };
     try {
       if (editingId) {
-        await apiClient("/api/app/products/update/", {
+        await apiClient("/api/app/products/update", {
           method: "POST",
-          body: { product_id: editingId, ...payload },
+          body: { id: editingId, ...payload },
         });
       } else {
-        await apiClient("/api/app/products/add/", {
+        await apiClient("/api/app/products/add", {
           method: "POST",
           body: payload,
         });
@@ -268,9 +268,9 @@ const MyProducts = () => {
   const handleDelete = async () => {
     if (!deleteId || !user) return;
     try {
-      await apiClient("/api/app/products/delete/", {
+      await apiClient("/api/app/products/delete", {
         method: "POST",
-        body: { product_id: deleteId },
+        body: { id: deleteId },
       });
       toast.success("Prodotto eliminato");
       fetchProducts();

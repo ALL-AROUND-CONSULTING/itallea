@@ -12,21 +12,19 @@ export function useWeightLog() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const today = new Date().toISOString().split("T")[0];
-
   const history = useQuery({
     queryKey: ["weight-log-history"],
     enabled: !!user,
     queryFn: async () => {
-      const data = await apiClient<any>("/api/app/weight_logs/get/", {
+      const data = await apiClient<any>("/api/app/weight_logs/get", {
         method: "POST",
         body: {},
       });
       const records = Array.isArray(data) ? data : data.records ?? [];
       return records.map((d: any) => ({
         id: d.id,
-        weight_kg: Number(d.weight_kg),
-        logged_at: d.logged_at,
+        weight_kg: Number(d.value ?? d.weight_kg),
+        logged_at: d.created_at ?? d.logged_at,
       })) as WeightEntry[];
     },
     staleTime: 60_000,
@@ -34,9 +32,9 @@ export function useWeightLog() {
 
   const logWeight = useMutation({
     mutationFn: async (weightKg: number) => {
-      await apiClient("/api/app/weight_logs/add/", {
+      await apiClient("/api/app/weight_logs/add", {
         method: "POST",
-        body: { weight_kg: weightKg, logged_at: today },
+        body: { value: weightKg },
       });
     },
     onSuccess: () => {

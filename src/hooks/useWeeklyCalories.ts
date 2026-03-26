@@ -25,7 +25,7 @@ export function useWeeklyCalories() {
         dates.push(format(subDays(today, i), "yyyy-MM-dd"));
       }
 
-      const data = await apiClient<any>("/api/app/meals/summary/", {
+      const data = await apiClient<any>("/api/app/meals/summary", {
         method: "POST",
         body: { start_date: dates[0], end_date: dates[6] },
       });

@@ -39,7 +39,7 @@ export function useRangeNutrition(range: RangeKey) {
       const startDate = dates[0];
       const endDate = dates[dates.length - 1];
 
-      const data = await apiClient<any>("/api/app/meals/summary/", {
+      const data = await apiClient<any>("/api/app/meals/summary", {
         method: "POST",
         body: { start_date: startDate, end_date: endDate },
       });

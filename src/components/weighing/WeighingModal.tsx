@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
+import { toApiMealType } from "@/lib/apiMappings";
 import { useAuth } from "@/contexts/AuthContext";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
@@ -78,18 +79,13 @@ export function WeighingModal({ open, onOpenChange }: WeighingModalProps) {
     setSaving(true);
 
     try {
-      await apiClient("/api/app/meals/add/", {
+      await apiClient("/api/app/meals/add", {
         method: "POST",
         body: {
-          product_id: selectedProduct.source === "products" ? selectedProduct.id : null,
-          user_product_id: selectedProduct.source === "user_products" ? selectedProduct.id : null,
-          product_name: selectedProduct.name,
+          product_id: selectedProduct.id,
+          recipe_id: null,
           grams: g,
-          meal_type: mealType,
-          kcal: computedPreview.kcal,
-          protein: computedPreview.protein,
-          carbs: computedPreview.carbs,
-          fat: computedPreview.fat,
+          meal_type: toApiMealType(mealType),
         },
       });
       toast.success(`${selectedProduct.name} aggiunto!`);

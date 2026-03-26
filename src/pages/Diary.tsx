@@ -44,9 +44,9 @@ const Diary = () => {
 
   const handleDelete = async (weighingId: string) => {
     try {
-      await apiClient("/api/app/meals/delete/", {
+      await apiClient("/api/app/meals/delete", {
         method: "POST",
-        body: { meal_id: weighingId },
+        body: { id: weighingId },
       });
       toast.success("Pesata eliminata");
       queryClient.invalidateQueries({ queryKey: ["daily-nutrition", dateStr] });
