@@ -119,7 +119,7 @@ const Scan = () => {
     setShowRegisterForm(false);
 
     try {
-      const data = await apiClient<any>(`/api/lookup-barcode/`, {
+      const data = await apiClient<any>(`/api/lookup-barcode`, {
         method: "POST",
         body: { barcode: code },
       });
