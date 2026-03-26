@@ -19,11 +19,12 @@ import { RecipeDetail } from "./RecipeDetail";
 
 type Props = {
   category: string;
+  categoryId: string | number;
   categoryIcon: string;
 };
 
-export function RecipeList({ category, categoryIcon }: Props) {
-  const { recipes, loading, deleteRecipe, fetchRecipes } = useRecipes(category);
+export function RecipeList({ category, categoryId, categoryIcon }: Props) {
+  const { recipes, loading, deleteRecipe, fetchRecipes } = useRecipes(String(categoryId));
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export function RecipeList({ category, categoryIcon }: Props) {
   if (showForm) {
     return (
       <RecipeForm
-        category={category}
+        category={String(categoryId)}
         onSaved={() => {
           setShowForm(false);
           fetchRecipes();

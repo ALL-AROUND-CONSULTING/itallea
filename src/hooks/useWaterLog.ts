@@ -17,9 +17,9 @@ export function useWaterLog(date?: string) {
       });
       const days = Array.isArray(data) ? data : data.records ?? [data];
       const day = days.find((d: any) => d.date === dateStr) ?? days[0];
-      const totalMl = day?.total_ml ?? day?.value ?? 0;
-      const count = day?.count ?? 0;
-      return { totalMl, count };
+      const totalMl = day?.value ?? day?.total_ml ?? 0;
+      // API doesn't return count; derive from totalMl > 0
+      return { totalMl, hasEntries: totalMl > 0 };
     },
     staleTime: 30_000,
   });
@@ -52,7 +52,7 @@ export function useWaterLog(date?: string) {
 
   return {
     totalMl: query.data?.totalMl ?? 0,
-    count: query.data?.count ?? 0,
+    count: query.data?.hasEntries ? 1 : 0, // backwards compat: >0 means entries exist
     isLoading: query.isLoading,
     addGlass,
     removeLastGlass,
