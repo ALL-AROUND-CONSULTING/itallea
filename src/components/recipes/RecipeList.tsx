@@ -21,9 +21,10 @@ type Props = {
   category: string;
   categoryId: string | number;
   categoryIcon: string;
+  categoryName?: string;
 };
 
-export function RecipeList({ category, categoryId, categoryIcon }: Props) {
+export function RecipeList({ category, categoryId, categoryIcon, categoryName }: Props) {
   const { recipes, loading, deleteRecipe, fetchRecipes } = useRecipes(String(categoryId));
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export function RecipeList({ category, categoryId, categoryIcon }: Props) {
     return (
       <RecipeForm
         category={String(categoryId)}
+        categoryName={categoryName ?? category}
         onSaved={() => {
           setShowForm(false);
           fetchRecipes();

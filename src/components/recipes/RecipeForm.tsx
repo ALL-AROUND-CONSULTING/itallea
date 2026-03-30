@@ -21,11 +21,12 @@ type TempIngredient = {
 
 type Props = {
   category: string;
+  categoryName?: string;
   onSaved: () => void;
   onCancel: () => void;
 };
 
-export function RecipeForm({ category, onSaved, onCancel }: Props) {
+export function RecipeForm({ category, categoryName, onSaved, onCancel }: Props) {
   const { createRecipe } = useRecipes();
   const [name, setName] = useState("");
   const [servings, setServings] = useState("1");
@@ -122,7 +123,7 @@ export function RecipeForm({ category, onSaved, onCancel }: Props) {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Categoria</Label>
-            <Input value={category} disabled className="bg-muted" />
+            <Input value={categoryName ?? category} disabled className="bg-muted" />
           </div>
         </div>
         <div className="space-y-1">
