@@ -409,7 +409,7 @@ const MyProducts = () => {
               </div>
             </div>
           </div>
-          <RecipeList category={selectedCategory.label} categoryId={selectedCategory.apiId ?? selectedCategory.id} categoryIcon={selectedCategory.icon} />
+          <RecipeList category={selectedCategory.label} categoryId={selectedCategory.apiId ?? selectedCategory.id} categoryIcon={selectedCategory.icon} categoryName={selectedCategory.label} />
         </div>
       </>
     );
