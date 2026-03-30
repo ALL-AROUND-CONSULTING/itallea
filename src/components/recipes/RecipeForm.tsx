@@ -82,6 +82,10 @@ export function RecipeForm({ category, onSaved, onCancel }: Props) {
       toast.error("Aggiungi almeno un ingrediente");
       return;
     }
+    if (!category || isNaN(Number(category))) {
+      toast.error("Categoria non sincronizzata. Torna indietro e riprova.");
+      return;
+    }
     setSaving(true);
     const id = await createRecipe(name.trim(), category, servingsNum, notes.trim() || null, ingredients);
     if (id) {

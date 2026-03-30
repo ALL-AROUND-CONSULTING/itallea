@@ -139,11 +139,24 @@ const MyProducts = () => {
         }
       }
 
-      // Enrich default categories with their API ids
+      // Enrich default categories with their API ids, auto-create missing ones
       for (const dc of DEFAULT_CATEGORIES) {
         const key = dc.label.toLowerCase();
         if (defaultApiIds[key]) {
           dc.apiId = defaultApiIds[key];
+        } else {
+          // Category doesn't exist on backend yet — create it
+          try {
+            const created = await apiClient<any>("/api/app/recipe_categories/add", {
+              method: "POST",
+              body: { name: dc.label },
+            });
+            if (created?.id) {
+              dc.apiId = created.id;
+            }
+          } catch {
+            console.warn(`Could not auto-create category "${dc.label}" on backend`);
+          }
         }
       }
 
@@ -396,7 +409,7 @@ const MyProducts = () => {
               </div>
             </div>
           </div>
-          <RecipeList category={selectedCategory.label} categoryId={selectedCategory.apiId ?? selectedCategory.id ?? selectedCategory.label} categoryIcon={selectedCategory.icon} />
+          <RecipeList category={selectedCategory.label} categoryId={selectedCategory.apiId ?? selectedCategory.id} categoryIcon={selectedCategory.icon} />
         </div>
       </>
     );
