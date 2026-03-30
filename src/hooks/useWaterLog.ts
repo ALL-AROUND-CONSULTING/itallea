@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useWaterLog(date?: string) {
@@ -11,6 +12,7 @@ export function useWaterLog(date?: string) {
     queryKey: ["water-log", dateStr],
     enabled: !!user,
     queryFn: async () => {
+      // Fetch total ml from API
       const data = await apiClient<any>("/api/app/water_logs/summary", {
         method: "POST",
         body: { start_date: dateStr, end_date: dateStr },
@@ -18,8 +20,22 @@ export function useWaterLog(date?: string) {
       const days = Array.isArray(data) ? data : data.records ?? [data];
       const day = days.find((d: any) => d.date === dateStr) ?? days[0];
       const totalMl = day?.value ?? day?.total_ml ?? 0;
-      // API doesn't return count; derive from totalMl > 0
-      return { totalMl, hasEntries: totalMl > 0 };
+
+      // Fetch actual entry count from database
+      let entryCount = 0;
+      if (user) {
+        const startOfDay = `${dateStr}T00:00:00`;
+        const endOfDay = `${dateStr}T23:59:59`;
+        const { count } = await supabase
+          .from("water_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("logged_at", startOfDay)
+          .lte("logged_at", endOfDay);
+        entryCount = count ?? 0;
+      }
+
+      return { totalMl, entryCount };
     },
     staleTime: 30_000,
   });
@@ -52,7 +68,7 @@ export function useWaterLog(date?: string) {
 
   return {
     totalMl: query.data?.totalMl ?? 0,
-    count: query.data?.hasEntries ? 1 : 0, // backwards compat: >0 means entries exist
+    count: query.data?.entryCount ?? 0,
     isLoading: query.isLoading,
     addGlass,
     removeLastGlass,
