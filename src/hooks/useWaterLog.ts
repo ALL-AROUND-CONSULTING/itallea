@@ -24,14 +24,11 @@ export function useWaterLog(date?: string) {
       // Fetch actual entry count from database
       let entryCount = 0;
       if (user) {
-        const startOfDay = `${dateStr}T00:00:00`;
-        const endOfDay = `${dateStr}T23:59:59`;
         const { count } = await supabase
           .from("water_logs")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .gte("logged_at", startOfDay)
-          .lte("logged_at", endOfDay);
+          .eq("logged_at", dateStr);
         entryCount = count ?? 0;
       }
 
