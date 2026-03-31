@@ -11,7 +11,7 @@ export function useWaterLog(date?: string) {
     queryKey: ["water-log", dateStr],
     enabled: !!user,
     queryFn: async () => {
-      // Fetch total ml from API summary
+      // Use summary endpoint with same start/end date for daily data
       const data = await apiClient<any>("/api/app/water_logs/summary", {
         method: "POST",
         body: { start_date: dateStr, end_date: dateStr },
@@ -19,20 +19,8 @@ export function useWaterLog(date?: string) {
       const days = Array.isArray(data) ? data : data.records ?? [data];
       const day = days.find((d: any) => d.date === dateStr) ?? days[0];
       const totalMl = day?.value ?? day?.total_ml ?? 0;
-
-      // Fetch entry count from API (try /get endpoint)
-      let entryCount = 0;
-      try {
-        const entries = await apiClient<any>("/api/app/water_logs/get", {
-          method: "POST",
-          body: { date: dateStr },
-        });
-        const list = Array.isArray(entries) ? entries : entries.records ?? [];
-        entryCount = list.length;
-      } catch {
-        // If /get endpoint doesn't exist, try to derive count from summary
-        entryCount = day?.count ?? day?.entries_count ?? (totalMl > 0 ? 1 : 0);
-      }
+      // Count entries from summary response records length
+      const entryCount = days.length > 0 ? (day?.count ?? day?.entries_count ?? days.length) : 0;
 
       return { totalMl, entryCount };
     },
