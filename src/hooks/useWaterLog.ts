@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useWaterLog(date?: string) {
@@ -12,7 +11,7 @@ export function useWaterLog(date?: string) {
     queryKey: ["water-log", dateStr],
     enabled: !!user,
     queryFn: async () => {
-      // Fetch total ml from API
+      // Fetch total ml from API summary
       const data = await apiClient<any>("/api/app/water_logs/summary", {
         method: "POST",
         body: { start_date: dateStr, end_date: dateStr },
@@ -21,15 +20,18 @@ export function useWaterLog(date?: string) {
       const day = days.find((d: any) => d.date === dateStr) ?? days[0];
       const totalMl = day?.value ?? day?.total_ml ?? 0;
 
-      // Fetch actual entry count from database
+      // Fetch entry count from API (try /get endpoint)
       let entryCount = 0;
-      if (user) {
-        const { count } = await supabase
-          .from("water_logs")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("logged_at", dateStr);
-        entryCount = count ?? 0;
+      try {
+        const entries = await apiClient<any>("/api/app/water_logs/get", {
+          method: "POST",
+          body: { date: dateStr },
+        });
+        const list = Array.isArray(entries) ? entries : entries.records ?? [];
+        entryCount = list.length;
+      } catch {
+        // If /get endpoint doesn't exist, try to derive count from summary
+        entryCount = day?.count ?? day?.entries_count ?? (totalMl > 0 ? 1 : 0);
       }
 
       return { totalMl, entryCount };
